@@ -1,0 +1,11 @@
+{
+  "snapshots": [
+    {
+      "as_of": "2026-09-30",
+      "generated_at": "2026-09-30T17:30:00+00:00",
+      "scores": {"large": 6, "mid": 8, "small": 3},
+      "pe": {"large": 19.36, "mid": 27.98, "small": 34.45},
+      "earnings_growth": {"large": 4.6, "mid": 20.0, "small": -2.7}
+    }
+  ]
+}
