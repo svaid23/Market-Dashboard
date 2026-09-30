@@ -1,11 +1,11 @@
 {
   "as_of": "2026-09-30",
-  "generated_at": "2026-09-30T17:30:00+00:00",
+  "generated_at": "2026-09-30T17:55:21.272202+00:00",
   "methodology_version": "1.0",
   "source_status": {
-    "status": "seed",
+    "status": "cached",
     "used_cached_data": true,
-    "message": "Seed values from the initial dashboard build. The scheduled refresh replaces these with live official Nifty Indices data."
+    "message": "Live refresh failed; showing last good data. Error: Data request failed: Expecting value: line 1 column 2 (char 1)"
   },
   "sources": [
     {
@@ -96,6 +96,10 @@
       "status": "Demanding setup"
     }
   ],
-  "ranked_research_priority": ["mid", "large", "small"],
+  "ranked_research_priority": [
+    "mid",
+    "large",
+    "small"
+  ],
   "disclaimer": "The score is a research-priority indicator, not a buy/sell recommendation or return forecast."
 }
