@@ -127,7 +127,7 @@
                 <th>Risk</th>
                 <th>P/E</th>
                 <th>P/E 5Y %ile</th>
-                <th>P/B 5Y %ile</th>
+                <th>P/B</th>
                 <th>Premium vs Large</th>
                 <th>Premium %ile</th>
                 <th>TTM Earnings YoY</th>
@@ -160,7 +160,7 @@
       <section id="methodology" class="panel methodology hidden">
         <div class="panel-head compact">
           <div>
-            <div class="eyebrow">METHODOLOGY V2</div>
+            <div class="eyebrow">METHODOLOGY V2.4</div>
             <h2>How the framework works</h2>
           </div>
         </div>
@@ -175,11 +175,11 @@
           </div>
         </div>
         <div class="method-notes">
-          <p><strong>Valuation:</strong> P/E and P/B percentiles versus the segment's own 5-year history.</p>
+          <p><strong>Valuation:</strong> P/E percentile versus the segment's own 5-year history, with current P/B shown as a second valuation lens. Historical P/B percentile is intentionally omitted because the no-login source is not reliable enough for unattended automation.</p>
           <p><strong>Relative valuation:</strong> Mid/Small P/E premium versus Nifty 50, compared with that premium's own 5-year distribution.</p>
           <p><strong>Earnings:</strong> actual trailing index earnings growth plus whether that growth rate is accelerating or decelerating.</p>
           <p><strong>Breadth:</strong> constituent participation above 50DMA and 200DMA; a broad rally is treated differently from a narrow index move.</p>
-          <p><strong>Quality:</strong> index-level implied ROE proxy (P/B ÷ P/E) relative to its own history.</p>
+          <p><strong>Quality:</strong> index-level implied ROE proxy (P/B ÷ P/E), converted to an absolute quality score rather than a historical percentile.</p>
           <p><strong>Momentum:</strong> Mid/Small 6M and 12M performance relative to Large Cap. Large is the neutral benchmark.</p>
           <p><strong>Risk:</strong> valuation stretch, relative premium, realised volatility, max drawdown, weak breadth and earnings deterioration are scored separately.</p>
           <p><strong>Missing data:</strong> scores automatically reweight across available components and show score coverage. Breadth can fall back to the last successful refresh.</p>
@@ -196,7 +196,7 @@
 
     <footer>
       <p id="disclaimer"></p>
-      <p>Built for periodic allocation research. The dashboard deliberately avoids forecasting future index EPS or future P/E multiples.</p>
+      <p>Built for periodic allocation research. The dashboard deliberately avoids forecasting future index EPS or future P/E multiples. Core history is sourced from Screener with an independent IndexPE valuation cross-check; NSE constituent files are used only for breadth when available.</p>
     </footer>
   </div>
 

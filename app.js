@@ -1,7 +1,7 @@
 const FALLBACK_DATA = {
   as_of: "2026-09-30",
   generated_at: "2026-09-30T17:30:00+00:00",
-  methodology_version: "2.0",
+  methodology_version: "2.4",
   source_status: {
     status: "seed",
     used_cached_data: true,
@@ -15,7 +15,7 @@ const FALLBACK_DATA = {
     {
       key:"large", label:"Large Cap", index_name:"NIFTY 50", pe:19.36, pb:null,
       pe_5y_percentile_pct:null, pb_5y_percentile_pct:null, earnings_yield_pct:5.17,
-      implied_roe_pct:null, implied_roe_5y_percentile_pct:null,
+      implied_roe_pct:null, implied_roe_5y_percentile_pct:null, quality_score:null,
       ttm_earnings_growth_yoy_pct:4.6, earnings_acceleration_3m_pp:null,
       price_return_6m_pct:1.3, price_return_1y_pct:-8.1,
       valuation_premium_vs_large_pct:null, valuation_premium_5y_percentile_pct:null,
@@ -28,7 +28,7 @@ const FALLBACK_DATA = {
     {
       key:"mid", label:"Mid Cap", index_name:"NIFTY MIDCAP 100", pe:27.98, pb:null,
       pe_5y_percentile_pct:null, pb_5y_percentile_pct:null, earnings_yield_pct:3.57,
-      implied_roe_pct:null, implied_roe_5y_percentile_pct:null,
+      implied_roe_pct:null, implied_roe_5y_percentile_pct:null, quality_score:null,
       ttm_earnings_growth_yoy_pct:20.0, earnings_acceleration_3m_pp:null,
       price_return_6m_pct:12.7, price_return_1y_pct:5.0,
       valuation_premium_vs_large_pct:44.5, valuation_premium_5y_percentile_pct:null,
@@ -41,7 +41,7 @@ const FALLBACK_DATA = {
     {
       key:"small", label:"Small Cap", index_name:"NIFTY SMALLCAP 250", pe:34.45, pb:null,
       pe_5y_percentile_pct:null, pb_5y_percentile_pct:null, earnings_yield_pct:2.90,
-      implied_roe_pct:null, implied_roe_5y_percentile_pct:null,
+      implied_roe_pct:null, implied_roe_5y_percentile_pct:null, quality_score:null,
       ttm_earnings_growth_yoy_pct:-2.7, earnings_acceleration_3m_pp:null,
       price_return_6m_pct:24.6, price_return_1y_pct:6.6,
       valuation_premium_vs_large_pct:77.9, valuation_premium_5y_percentile_pct:null,
@@ -57,8 +57,9 @@ const FALLBACK_DATA = {
     risk:{valuation:20,relative_premium:15,volatility:25,drawdown:20,breadth_fragility:10,earnings_deterioration:10}
   },
   sources: [
-    {name:"Nifty Indices Historical Data",url:"https://www.niftyindices.com/reports/historical-data",purpose:"Index prices, P/E, P/B and dividend yield"},
-    {name:"Nifty Indices Constituents",url:"https://www.niftyindices.com/indices/equity/broad-based-indices/nifty--50",purpose:"Official constituent universes"},
+    {name:"Screener.in",url:"https://www.screener.in/company/NIFTY/",purpose:"Core index price, P/E, EPS history and current P/B"},
+    {name:"IndexPE",url:"https://indexpe.in/",purpose:"Independent valuation cross-check"},
+    {name:"Nifty Indices Constituents",url:"https://www.niftyindices.com/indices/equity/broad-based-indices",purpose:"Primary constituent universes for breadth"},
     {name:"Yahoo Finance via yfinance",url:"https://finance.yahoo.com/",purpose:"Constituent prices used only for breadth"}
   ],
   disclaimer:"The scores organize observable market evidence for research. They are not buy/sell recommendations, return forecasts, or guarantees of future performance."
@@ -207,7 +208,7 @@ function renderValuation(items) {
     metricRow("P/E", withItems(items,"pe"), fmtX),
     metricRow("P/E 5Y percentile", withItems(items,"pe_5y_percentile_pct"), v=>fmtPct(v,false), v=>valueTone(v,true)),
     metricRow("P/B", withItems(items,"pb"), fmtX),
-    metricRow("P/B 5Y percentile", withItems(items,"pb_5y_percentile_pct"), v=>fmtPct(v,false), v=>valueTone(v,true)),
+    metricRow("P/E 5Y median", withItems(items,"pe_5y_median"), fmtX),
     metricRow("Earnings yield", withItems(items,"earnings_yield_pct"), v=>fmtPct(v,false), v=>valueTone(v,false)),
   ].join("");
   document.getElementById("valuationMatrix").innerHTML = matrixHeader() + html;
@@ -246,7 +247,7 @@ function renderQuality(items) {
   const html = [
     metricRow("Earnings yield", withItems(items,"earnings_yield_pct"), v=>fmtPct(v,false)),
     metricRow("Implied ROE proxy", withItems(items,"implied_roe_pct"), v=>fmtPct(v,false), v=>valueTone(v,false)),
-    metricRow("ROE proxy 5Y %ile", withItems(items,"implied_roe_5y_percentile_pct"), v=>fmtPct(v,false), v=>valueTone(v,false)),
+    metricRow("Quality score", withItems(items,"quality_score"), v=>v == null ? "--" : `${Math.round(v)}/100`, v=>scoreTone(v)),
     metricRow("Dividend yield", withItems(items,"dividend_yield_pct"), v=>fmtPct(v,false)),
   ].join("");
   document.getElementById("qualityMatrix").innerHTML = matrixHeader() + html;
@@ -299,7 +300,7 @@ function renderTable(items) {
       <td><span class="score-cell ${scoreTone(x.risk_score,"risk")}">${x.risk_score == null ? "--" : `${Math.round(x.risk_score)}/100`}</span></td>
       <td>${fmtX(x.pe)}</td>
       <td>${fmtPct(x.pe_5y_percentile_pct,false)}</td>
-      <td>${fmtPct(x.pb_5y_percentile_pct,false)}</td>
+      <td>${fmtX(x.pb)}</td>
       <td>${x.key === "large" ? "Benchmark" : fmtPct(x.valuation_premium_vs_large_pct)}</td>
       <td>${x.key === "large" ? "--" : fmtPct(x.valuation_premium_5y_percentile_pct,false)}</td>
       <td>${fmtPct(x.ttm_earnings_growth_yoy_pct)}</td>

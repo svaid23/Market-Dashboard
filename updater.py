@@ -2,74 +2,63 @@ import csv
 import io
 import json
 import math
+import re
 import statistics
 import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urljoin
 
 import requests
-import cloudscraper
+from bs4 import BeautifulSoup
 
-BASE = "https://www.niftyindices.com"
-HIST_PAGE = BASE + "/reports/historical-data"
-# The official site is protected by anti-bot middleware. Keep both endpoint families
-# because Nifty Indices has exposed both forms at different times. The legacy ASP.NET
-# path remains the best-documented public endpoint as of Oct-2026.
-PRICE_URLS = [
-    BASE + "/Backpage.aspx/getHistoricaldatatabletoString",
-    BASE + "/BackPage/getHistoricaldatatabletoString",
-    "https://niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString",
-    "https://niftyindices.com/BackPage/getHistoricaldatatabletoString",
-]
-VALUATION_URLS = [
-    BASE + "/Backpage.aspx/getpepbHistoricaldataDBtoString",
-    BASE + "/BackPage/getpepbHistoricaldataDBtoString",
-    "https://niftyindices.com/Backpage.aspx/getpepbHistoricaldataDBtoString",
-    "https://niftyindices.com/BackPage/getpepbHistoricaldataDBtoString",
-]
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 LATEST_FILE = DATA_DIR / "latest.json"
 HISTORY_FILE = DATA_DIR / "history.json"
 
+SCREENER = "https://www.screener.in"
+INDEXPE = "https://indexpe.in"
+NIFTY = "https://www.niftyindices.com"
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+}
+
 INDICES = [
     {
         "key": "large",
-        "name": "NIFTY 50",
         "label": "Large Cap",
-        "benchmark": True,
-        "constituents": BASE + "/IndexConstituent/ind_nifty50list.csv",
+        "name": "NIFTY 50",
+        "screener_slug": "NIFTY",
+        "indexpe_slug": "nifty-50",
+        "constituent_csv": NIFTY + "/IndexConstituent/ind_nifty50list.csv",
+        "expected_constituents": 50,
+        "max_screener_pages": 3,
     },
     {
         "key": "mid",
-        "name": "NIFTY MIDCAP 100",
         "label": "Mid Cap",
-        "benchmark": False,
-        "constituents": BASE + "/IndexConstituent/ind_niftymidcap100list.csv",
+        "name": "NIFTY MIDCAP 100",
+        "screener_slug": "CNXMIDCAP",
+        "indexpe_slug": "nifty-midcap-100",
+        "constituent_csv": NIFTY + "/IndexConstituent/ind_niftymidcap100list.csv",
+        "expected_constituents": 100,
+        "max_screener_pages": 6,
     },
     {
         "key": "small",
-        "name": "NIFTY SMALLCAP 250",
         "label": "Small Cap",
-        "benchmark": False,
-        "constituents": BASE + "/IndexConstituent/ind_niftysmallcap250list.csv",
+        "name": "NIFTY SMALLCAP 250",
+        "screener_slug": "SMALLCA250",
+        "indexpe_slug": "nifty-smallcap-250",
+        "constituent_csv": NIFTY + "/IndexConstituent/ind_niftysmallcap250list.csv",
+        "expected_constituents": 250,
+        "max_screener_pages": 14,
     },
 ]
-
-HEADERS = {
-    "Accept": "application/json, text/javascript, */*; q=0.01",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Content-Type": "application/json; charset=UTF-8",
-    "Origin": BASE,
-    "Referer": HIST_PAGE,
-    "X-Requested-With": "XMLHttpRequest",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-}
-GET_HEADERS = {
-    "Referer": BASE + "/",
-    "User-Agent": HEADERS["User-Agent"],
-    "Accept": "text/csv,text/plain,*/*",
-}
 
 OPPORTUNITY_WEIGHTS = {
     "valuation": 25,
@@ -94,25 +83,12 @@ def safe_float(value):
     if value is None:
         return None
     try:
-        text = str(value).replace(",", "").strip()
-        if not text or text.lower() in {"na", "nan", "null", "-"}:
+        text = str(value).replace(",", "").replace("%", "").replace("₹", "").strip()
+        if not text or text.lower() in {"na", "nan", "null", "-", "--"}:
             return None
         return float(text)
     except Exception:
         return None
-
-
-def parse_any_date(value):
-    if not value:
-        return None
-    text = str(value).strip()
-    fmts = ["%d %b %Y", "%d-%b-%Y", "%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"]
-    for fmt in fmts:
-        try:
-            return datetime.strptime(text, fmt).date()
-        except ValueError:
-            pass
-    return None
 
 
 def load_json(path, default):
@@ -127,141 +103,10 @@ def save_json(path, data):
     path.write_text(json.dumps(data, indent=2, sort_keys=False), encoding="utf-8")
 
 
-def chunks(start, end, days=2500):
-    cursor = start
-    while cursor <= end:
-        chunk_end = min(cursor + timedelta(days=days - 1), end)
-        yield cursor, chunk_end
-        cursor = chunk_end + timedelta(days=1)
-
-
-def decode_rows(resp):
-    """Decode both the current Nifty Indices response and the legacy ASP.NET wrapper."""
-    raw = (resp.text or "").lstrip("\ufeff").strip()
-    if not raw:
-        raise RuntimeError(f"Empty response from {resp.url}")
-    try:
-        payload = resp.json()
-    except Exception as exc:
-        preview = raw[:240].replace("\n", " ")
-        ctype = resp.headers.get("content-type", "")
-        server = resp.headers.get("server", "")
-        raise RuntimeError(
-            f"Non-JSON response from {resp.url} (HTTP {resp.status_code}, content-type={ctype!r}, server={server!r}): {preview!r}"
-        ) from exc
-
-    # Current API (Jul-2026 onward): direct JSON array.
-    if isinstance(payload, list):
-        return payload
-
-    # Legacy API: {"d": "[...]"} or occasionally {"d": [...]}
-    if isinstance(payload, dict):
-        rows = payload.get("d", payload.get("data", []))
-        if isinstance(rows, str):
-            rows = rows.strip()
-            if not rows:
-                return []
-            rows = json.loads(rows)
-        if isinstance(rows, list):
-            return rows
-
-    raise RuntimeError(f"Unexpected JSON shape from {resp.url}: {type(payload).__name__}")
-
-
-def request_rows(session, urls, payload, retries=2):
-    """Try the current Nifty Indices endpoint first, then the legacy endpoint.
-
-    This protects the scheduled dashboard from upstream path/response migrations.
-    Both direct-array and legacy {"d": "[...]"} response shapes are supported.
-    """
-    if isinstance(urls, str):
-        urls = [urls]
-    errors = []
-    for url in urls:
-        last_error = None
-        for attempt in range(retries):
-            try:
-                resp = session.post(url, headers=HEADERS, json=payload, timeout=45)
-                resp.raise_for_status()
-                rows = decode_rows(resp)
-                if not rows:
-                    raise RuntimeError(f"Empty data array from {url}")
-                time.sleep(0.7)
-                return rows
-            except Exception as exc:
-                last_error = exc
-                try:
-                    session.get(HIST_PAGE, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=10)
-                except Exception:
-                    pass
-                time.sleep(1.5 * (attempt + 1))
-        errors.append(f"{url}: {last_error}")
-    raise RuntimeError("All Nifty Indices endpoints failed: " + " | ".join(errors))
-
-
-def fetch_price_history(session, index_name, start, end):
-    output = {}
-    for chunk_start, chunk_end in chunks(start, end):
-        cinfo = (
-            "{'name':'%s','startDate':'%s','endDate':'%s','indexName':'%s'}"
-            % (
-                index_name,
-                chunk_start.strftime("%d-%b-%Y"),
-                chunk_end.strftime("%d-%b-%Y"),
-                index_name,
-            )
-        )
-        rows = request_rows(session, PRICE_URLS, {"cinfo": cinfo})
-        for row in rows:
-            dt = parse_any_date(row.get("HistoricalDate") or row.get("DATE") or row.get("Date"))
-            close = safe_float(row.get("CLOSE") or row.get("Close") or row.get("close"))
-            if dt and close and close > 0:
-                output[dt] = close
-    return output
-
-
-def fetch_valuation_history(session, index_name, start, end):
-    output = {}
-    for chunk_start, chunk_end in chunks(start, end):
-        cinfo = (
-            "{'name':'%s','startDate':'%s','endDate':'%s','indexName':'%s'}"
-            % (
-                index_name,
-                chunk_start.strftime("%d-%b-%Y"),
-                chunk_end.strftime("%d-%b-%Y"),
-                index_name,
-            )
-        )
-        rows = request_rows(session, VALUATION_URLS, {"cinfo": cinfo})
-        for row in rows:
-            dt = parse_any_date(row.get("DATE") or row.get("Date") or row.get("HistoricalDate"))
-            pe = safe_float(row.get("pe") or row.get("P/E") or row.get("PE"))
-            pb = safe_float(row.get("pb") or row.get("P/B") or row.get("PB"))
-            dy = safe_float(row.get("divYield") or row.get("Div Yield") or row.get("Dividend Yield"))
-            if dt and pe and pe > 0:
-                output[dt] = {"pe": pe, "pb": pb, "div_yield": dy}
-    return output
-
-
-def last_common_date(price_map, valuation_map):
-    common = sorted(set(price_map) & set(valuation_map))
-    if not common:
-        raise RuntimeError("No common price and valuation date")
-    return common[-1]
-
-
-def pair_on_or_before(price_map, valuation_map, target):
-    common = {d for d in price_map if d in valuation_map and d <= target}
-    if not common:
+def clamp(value, lo=0.0, hi=100.0):
+    if value is None:
         return None
-    dt = max(common)
-    return {
-        "date": dt,
-        "close": price_map[dt],
-        "pe": valuation_map[dt]["pe"],
-        "pb": valuation_map[dt].get("pb"),
-        "div_yield": valuation_map[dt].get("div_yield"),
-    }
+    return max(lo, min(hi, float(value)))
 
 
 def pct_change(new, old):
@@ -270,24 +115,11 @@ def pct_change(new, old):
     return new / old - 1.0
 
 
-def earnings_value(close, pe):
-    if not close or not pe:
-        return None
-    return close / pe
-
-
-def clamp(value, lo=0.0, hi=100.0):
-    if value is None:
-        return None
-    return max(lo, min(hi, float(value)))
-
-
 def percentile(values, x):
     clean = sorted(v for v in values if v is not None and math.isfinite(v))
     if not clean or x is None or not math.isfinite(x):
         return None
-    count = sum(1 for v in clean if v <= x)
-    return count / len(clean)
+    return sum(1 for v in clean if v <= x) / len(clean)
 
 
 def weighted_average(parts, weights):
@@ -296,13 +128,11 @@ def weighted_average(parts, weights):
         return None, 0.0
     used_weight = sum(weights[k] for k, _ in available)
     value = sum(v * weights[k] for k, v in available) / used_weight
-    total_weight = sum(weights.values())
-    coverage = used_weight / total_weight * 100 if total_weight else 0
+    coverage = used_weight / sum(weights.values()) * 100
     return value, coverage
 
 
 def linear_score(value, anchors):
-    """Piecewise linear score. anchors = [(input, score), ...], sorted by input."""
     if value is None:
         return None
     anchors = sorted(anchors)
@@ -318,156 +148,16 @@ def linear_score(value, anchors):
     return None
 
 
-def daily_returns(price_map, start, end):
-    points = [(d, p) for d, p in price_map.items() if start <= d <= end and p and p > 0]
-    points.sort()
-    rets = []
-    for (_, p0), (_, p1) in zip(points, points[1:]):
-        if p0 > 0 and p1 > 0:
-            rets.append(math.log(p1 / p0))
-    return rets
-
-
-def annualized_volatility(price_map, start, end):
-    rets = daily_returns(price_map, start, end)
-    if len(rets) < 40:
-        return None
-    return statistics.stdev(rets) * math.sqrt(252)
-
-
-def max_drawdown(price_map, start, end):
-    points = [(d, p) for d, p in price_map.items() if start <= d <= end and p and p > 0]
-    points.sort()
-    if not points:
-        return None
-    peak = points[0][1]
-    worst = 0.0
-    for _, p in points:
-        peak = max(peak, p)
-        dd = p / peak - 1.0
-        worst = min(worst, dd)
-    return worst
-
-
-def drawdown_from_high(price_map, start, end):
-    points = [p for d, p in price_map.items() if start <= d <= end and p and p > 0]
-    if not points:
-        return None
-    high = max(points)
-    current = price_map[max(d for d in price_map if d <= end)]
-    return current / high - 1.0 if high else None
-
-
-def fetch_constituents(session, url):
-    resp = session.get(url, headers=GET_HEADERS, timeout=45)
-    resp.raise_for_status()
-    text = resp.content.decode("utf-8-sig", errors="replace")
-    rows = list(csv.DictReader(io.StringIO(text)))
-    symbols = []
-    for row in rows:
-        symbol = (row.get("Symbol") or row.get("SYMBOL") or "").strip()
-        if symbol:
-            symbols.append(symbol)
-    if not symbols:
-        raise RuntimeError("No symbols found in constituent file")
-    return symbols
-
-
-def extract_yf_close(frame, tickers):
-    """Return dict[ticker] -> pandas Series without importing pandas at module import time."""
-    if frame is None or getattr(frame, "empty", True):
-        return {}
-    output = {}
-    cols = getattr(frame, "columns", None)
-    if cols is None:
-        return output
-
-    try:
-        # Normal multi-ticker yfinance layout: first level contains OHLC field names.
-        if getattr(cols, "nlevels", 1) > 1:
-            level0 = list(cols.get_level_values(0))
-            if "Close" in level0:
-                closes = frame["Close"]
-                for ticker in tickers:
-                    if ticker in closes.columns:
-                        output[ticker] = closes[ticker]
-                return output
-            # Alternate ticker-first layout.
-            level0_unique = set(cols.get_level_values(0))
-            for ticker in tickers:
-                if ticker in level0_unique:
-                    sub = frame[ticker]
-                    if "Close" in sub.columns:
-                        output[ticker] = sub["Close"]
-                elif (ticker, "Close") in cols:
-                    output[ticker] = frame[(ticker, "Close")]
-            return output
-
-        # Single ticker layout.
-        if "Close" in cols and tickers:
-            output[tickers[0]] = frame["Close"]
-    except Exception:
-        return {}
-    return output
-
-
-def compute_breadth(symbols):
-    import yfinance as yf
-
-    yf_tickers = [f"{s}.NS" for s in symbols]
-    series_map = {}
-    batch_size = 60
-    for i in range(0, len(yf_tickers), batch_size):
-        batch = yf_tickers[i : i + batch_size]
-        frame = yf.download(
-            tickers=batch,
-            period="1y",
-            interval="1d",
-            auto_adjust=True,
-            progress=False,
-            threads=True,
-            timeout=30,
-        )
-        series_map.update(extract_yf_close(frame, batch))
-
-    eligible50 = above50 = eligible200 = above200 = 0
-    for ticker in yf_tickers:
-        series = series_map.get(ticker)
-        if series is None:
-            continue
-        try:
-            s = series.dropna()
-            n = len(s)
-            if n >= 50:
-                eligible50 += 1
-                if float(s.iloc[-1]) > float(s.iloc[-50:].mean()):
-                    above50 += 1
-            if n >= 200:
-                eligible200 += 1
-                if float(s.iloc[-1]) > float(s.iloc[-200:].mean()):
-                    above200 += 1
-        except Exception:
-            continue
-
-    total = len(symbols)
-    if eligible50 < max(10, int(total * 0.45)):
-        raise RuntimeError(f"Breadth coverage too low ({eligible50}/{total} with 50DMA history)")
-
-    return {
-        "breadth_above_50dma_pct": round(above50 / eligible50 * 100, 1) if eligible50 else None,
-        "breadth_above_200dma_pct": round(above200 / eligible200 * 100, 1) if eligible200 else None,
-        "breadth_50_coverage_pct": round(eligible50 / total * 100, 1) if total else None,
-        "breadth_200_coverage_pct": round(eligible200 / total * 100, 1) if total else None,
-        "breadth_constituents": total,
-    }
-
-
 def growth_score(growth_pct):
     return linear_score(growth_pct, [(-10, 0), (0, 35), (8, 55), (15, 75), (25, 100)])
 
 
 def acceleration_score(accel_pp):
     return linear_score(accel_pp, [(-10, 0), (-5, 20), (0, 50), (5, 75), (10, 100)])
+
+
+def quality_roe_score(roe_pct):
+    return linear_score(roe_pct, [(6, 10), (10, 30), (14, 50), (18, 70), (24, 90), (30, 100)])
 
 
 def volatility_risk_score(vol_pct):
@@ -505,6 +195,359 @@ def risk_label(score):
     return "High"
 
 
+def http_get(session, url, *, timeout=35, params=None):
+    last = None
+    for attempt in range(3):
+        try:
+            r = session.get(url, headers=HEADERS, timeout=timeout, params=params)
+            if r.status_code == 429:
+                wait = int(r.headers.get("Retry-After", "3") or "3")
+                time.sleep(min(wait, 15))
+                last = RuntimeError(f"HTTP 429 from {r.url}")
+                continue
+            r.raise_for_status()
+            return r
+        except Exception as exc:
+            last = exc
+            time.sleep(1.2 * (attempt + 1))
+    raise RuntimeError(f"GET failed for {url}: {last}")
+
+
+def normalize_text(html):
+    soup = BeautifulSoup(html, "html.parser")
+    return soup, " ".join(soup.stripped_strings)
+
+
+def regex_num(text, patterns):
+    for pattern in patterns:
+        m = re.search(pattern, text, flags=re.I)
+        if m:
+            value = safe_float(m.group(1))
+            if value is not None:
+                return value
+    return None
+
+
+def parse_screener_summary(html):
+    soup, text = normalize_text(html)
+    company_id = None
+    for tag in soup.find_all(attrs={"data-company-id": True}):
+        company_id = str(tag.get("data-company-id") or "").strip()
+        if company_id:
+            break
+    if not company_id:
+        m = re.search(r'data-company-id=["\'](\d+)["\']', html)
+        if m:
+            company_id = m.group(1)
+
+    current = regex_num(text, [r"Current Price\s*₹?\s*([\d,.]+)"])
+    pe = regex_num(text, [r"(?:^|\s)P/E\s*([\d,.]+)"])
+    pb = regex_num(text, [r"Price to Book value\s*([\d,.]+)"])
+    dy = regex_num(text, [r"Dividend Yield\s*([\d,.]+)\s*%"])
+    cagr_1y = regex_num(text, [r"CAGR 1Yr\s*([+\-]?[\d,.]+)\s*%"])
+    cagr_5y = regex_num(text, [r"CAGR 5Yr\s*([+\-]?[\d,.]+)\s*%"])
+
+    high = low = None
+    m = re.search(r"High / Low\s*₹?\s*([\d,.]+)\s*/\s*([\d,.]+)", text, flags=re.I)
+    if m:
+        high, low = safe_float(m.group(1)), safe_float(m.group(2))
+
+    if not company_id:
+        raise RuntimeError("Screener page did not expose data-company-id")
+    if pe is None or current is None:
+        raise RuntimeError("Screener summary missing current price or P/E")
+
+    return {
+        "company_id": company_id,
+        "current": current,
+        "pe": pe,
+        "pb": pb,
+        "dividend_yield": dy,
+        "cagr_1y": cagr_1y,
+        "cagr_5y": cagr_5y,
+        "high_52w": high,
+        "low_52w": low,
+    }
+
+
+def parse_chart_series(payload):
+    datasets = payload.get("datasets") if isinstance(payload, dict) else None
+    if not isinstance(datasets, list):
+        raise RuntimeError("Unexpected Screener chart JSON shape")
+    out = {}
+    for ds in datasets:
+        metric = str(ds.get("metric") or ds.get("label") or "").strip()
+        values = ds.get("values") or []
+        series = {}
+        for row in values:
+            if not isinstance(row, (list, tuple)) or len(row) < 2:
+                continue
+            try:
+                dt = datetime.strptime(str(row[0])[:10], "%Y-%m-%d").date()
+            except Exception:
+                continue
+            val = safe_float(row[1])
+            if val is not None and math.isfinite(val):
+                series[dt] = val
+        if series:
+            out[metric] = series
+    return out
+
+
+def choose_series(series_map, keywords, exclude=()):
+    for name, series in series_map.items():
+        lower = name.lower()
+        if any(k in lower for k in keywords) and not any(x in lower for x in exclude):
+            return series
+    return {}
+
+
+def fetch_screener_core(session, cfg):
+    page_url = f"{SCREENER}/company/{cfg['screener_slug']}/"
+    html = http_get(session, page_url).text
+    summary = parse_screener_summary(html)
+    company_id = summary["company_id"]
+
+    price_url = f"{SCREENER}/api/company/{company_id}/chart/"
+    price_long_resp = http_get(
+        session,
+        price_url,
+        params={"q": "Price-DMA50-DMA200-Volume", "days": "1825", "consolidated": "true"},
+    )
+    # Screener can aggregate long windows to weekly points. Pull a separate 1Y
+    # daily window for realised volatility, drawdown and 6M/1Y momentum.
+    price_daily_resp = http_get(
+        session,
+        price_url,
+        params={"q": "Price-DMA50-DMA200-Volume", "days": "365", "consolidated": "true"},
+    )
+    pe_resp = http_get(
+        session,
+        price_url,
+        params={"q": "PE-EPS", "days": "1825", "consolidated": "true"},
+    )
+
+    try:
+        price_long_series_map = parse_chart_series(price_long_resp.json())
+        price_daily_series_map = parse_chart_series(price_daily_resp.json())
+        pe_series_map = parse_chart_series(pe_resp.json())
+    except Exception as exc:
+        raise RuntimeError(f"Screener chart JSON parse failed for {cfg['name']}: {exc}") from exc
+
+    price_map = choose_series(price_long_series_map, ["price"], exclude=["sales", "book", "market cap"])
+    price_daily_map = choose_series(price_daily_series_map, ["price"], exclude=["sales", "book", "market cap"])
+    pe_map = choose_series(pe_series_map, ["pe", "p/e", "price to earning"])
+    eps_map = choose_series(pe_series_map, ["eps", "earning per share"])
+
+    if not price_map:
+        raise RuntimeError(f"No Price series from Screener chart for {cfg['name']}")
+    if not price_daily_map:
+        raise RuntimeError(f"No 1Y daily Price series from Screener chart for {cfg['name']}")
+    if not pe_map:
+        raise RuntimeError(f"No P/E series from Screener chart for {cfg['name']}")
+
+    return {
+        "page_url": page_url,
+        "summary": summary,
+        "price_map": price_map,
+        "price_daily_map": price_daily_map,
+        "pe_map": pe_map,
+        "eps_map": eps_map,
+    }
+
+
+def fetch_indexpe_check(session, cfg):
+    url = f"{INDEXPE}/{cfg['indexpe_slug']}"
+    try:
+        html = http_get(session, url, timeout=25).text
+        _, text = normalize_text(html)
+        current_pe = regex_num(text, [r"Current PE Ratio\s*([\d,.]+)"])
+        median_5y = regex_num(text, [r"5Y Median PE\s*([\d,.]+)"])
+        updated = None
+        m = re.search(r"Last updated:\s*(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})", text, flags=re.I)
+        if m:
+            try:
+                updated = datetime.strptime(m.group(1), "%d %b %Y").date().isoformat()
+            except Exception:
+                pass
+        return {"status": "live", "url": url, "current_pe": current_pe, "median_5y": median_5y, "as_of": updated}
+    except Exception as exc:
+        return {"status": "unavailable", "url": url, "error": str(exc), "current_pe": None, "median_5y": None, "as_of": None}
+
+
+def on_or_before(series, target):
+    eligible = [d for d in series if d <= target]
+    if not eligible:
+        return None, None
+    dt = max(eligible)
+    return dt, series[dt]
+
+
+def paired_on_or_before(a, b, target):
+    common = [d for d in set(a) & set(b) if d <= target]
+    if not common:
+        return None
+    dt = max(common)
+    return dt, a[dt], b[dt]
+
+
+def annualized_volatility(price_map, start, end):
+    pts = sorted((d, p) for d, p in price_map.items() if start <= d <= end and p and p > 0)
+    if len(pts) < 40:
+        return None
+    rets = [math.log(p1 / p0) for (_, p0), (_, p1) in zip(pts, pts[1:]) if p0 > 0 and p1 > 0]
+    if len(rets) < 40:
+        return None
+    return statistics.stdev(rets) * math.sqrt(252)
+
+
+def max_drawdown(price_map, start, end):
+    pts = sorted((d, p) for d, p in price_map.items() if start <= d <= end and p and p > 0)
+    if not pts:
+        return None
+    peak = pts[0][1]
+    worst = 0.0
+    for _, p in pts:
+        peak = max(peak, p)
+        worst = min(worst, p / peak - 1.0)
+    return worst
+
+
+def fetch_nifty_constituents(session, cfg):
+    r = http_get(session, cfg["constituent_csv"], timeout=30)
+    text = r.content.decode("utf-8-sig", errors="replace")
+    rows = list(csv.DictReader(io.StringIO(text)))
+    syms = []
+    for row in rows:
+        sym = (row.get("Symbol") or row.get("SYMBOL") or "").strip()
+        if sym:
+            syms.append(sym)
+    if len(syms) < max(10, int(cfg["expected_constituents"] * 0.75)):
+        raise RuntimeError(f"Official constituent CSV returned only {len(syms)} symbols")
+    return syms
+
+
+def fetch_screener_constituents(session, cfg):
+    symbols = []
+    seen = set()
+    for page in range(1, cfg["max_screener_pages"] + 1):
+        url = f"{SCREENER}/company/{cfg['screener_slug']}/"
+        r = http_get(session, url, params={"page": page, "sort": "name", "order": "asc"}, timeout=30)
+        soup = BeautifulSoup(r.text, "html.parser")
+        found = 0
+        for table in soup.find_all("table"):
+            for a in table.find_all("a", href=True):
+                href = a.get("href", "")
+                m = re.match(r"/company/([^/]+)/", href)
+                if not m:
+                    continue
+                sym = m.group(1).strip().upper()
+                if sym in {cfg["screener_slug"].upper(), "ID"}:
+                    continue
+                if sym and sym not in seen:
+                    seen.add(sym)
+                    symbols.append(sym)
+                    found += 1
+        if found == 0:
+            break
+        if len(symbols) >= cfg["expected_constituents"]:
+            break
+        time.sleep(0.25)
+    if len(symbols) < max(10, int(cfg["expected_constituents"] * 0.7)):
+        raise RuntimeError(f"Screener fallback found only {len(symbols)} symbols")
+    return symbols[: cfg["expected_constituents"] + 5]
+
+
+def fetch_constituents(session, cfg):
+    try:
+        return fetch_nifty_constituents(session, cfg), "nifty_csv"
+    except Exception as official_exc:
+        try:
+            return fetch_screener_constituents(session, cfg), "screener_pages"
+        except Exception as fallback_exc:
+            raise RuntimeError(f"Constituent sources failed. Nifty: {official_exc}; Screener: {fallback_exc}")
+
+
+def extract_yf_close(frame, tickers):
+    if frame is None or getattr(frame, "empty", True):
+        return {}
+    out = {}
+    cols = getattr(frame, "columns", None)
+    if cols is None:
+        return out
+    try:
+        if getattr(cols, "nlevels", 1) > 1:
+            level0 = list(cols.get_level_values(0))
+            if "Close" in level0:
+                closes = frame["Close"]
+                for t in tickers:
+                    if t in closes.columns:
+                        out[t] = closes[t]
+                return out
+            top = set(cols.get_level_values(0))
+            for t in tickers:
+                if t in top:
+                    sub = frame[t]
+                    if "Close" in sub.columns:
+                        out[t] = sub["Close"]
+                elif (t, "Close") in cols:
+                    out[t] = frame[(t, "Close")]
+            return out
+        if "Close" in cols and tickers:
+            out[tickers[0]] = frame["Close"]
+    except Exception:
+        return {}
+    return out
+
+
+def compute_breadth(symbols):
+    import yfinance as yf
+
+    yf_tickers = [f"{s}.NS" for s in symbols]
+    series_map = {}
+    for i in range(0, len(yf_tickers), 60):
+        batch = yf_tickers[i : i + 60]
+        frame = yf.download(
+            tickers=batch,
+            period="1y",
+            interval="1d",
+            auto_adjust=True,
+            progress=False,
+            threads=True,
+            timeout=30,
+        )
+        series_map.update(extract_yf_close(frame, batch))
+
+    eligible50 = above50 = eligible200 = above200 = 0
+    for ticker in yf_tickers:
+        series = series_map.get(ticker)
+        if series is None:
+            continue
+        try:
+            s = series.dropna()
+            if len(s) >= 50:
+                eligible50 += 1
+                if float(s.iloc[-1]) > float(s.iloc[-50:].mean()):
+                    above50 += 1
+            if len(s) >= 200:
+                eligible200 += 1
+                if float(s.iloc[-1]) > float(s.iloc[-200:].mean()):
+                    above200 += 1
+        except Exception:
+            continue
+
+    total = len(symbols)
+    if eligible50 < max(10, int(total * 0.45)):
+        raise RuntimeError(f"Breadth coverage too low ({eligible50}/{total})")
+    return {
+        "breadth_above_50dma_pct": round(above50 / eligible50 * 100, 1) if eligible50 else None,
+        "breadth_above_200dma_pct": round(above200 / eligible200 * 100, 1) if eligible200 else None,
+        "breadth_50_coverage_pct": round(eligible50 / total * 100, 1) if total else None,
+        "breadth_200_coverage_pct": round(eligible200 / total * 100, 1) if total else None,
+        "breadth_constituents": total,
+    }
+
+
 def prior_index(prior, key):
     if not prior:
         return None
@@ -512,116 +555,129 @@ def prior_index(prior, key):
 
 
 def build_live_snapshot(prior=None):
-    today = date.today()
-    # 500 calendar days gives enough room for current and 3-month-ago YoY earnings growth.
-    start_price = today - timedelta(days=500)
-    start_valuation = today - timedelta(days=5 * 365 + 60)
-
-    # cloudscraper handles the JavaScript/Cloudflare-style challenge that can cause
-    # plain requests.Session() to receive HTML instead of JSON on GitHub runners.
-    session = cloudscraper.create_scraper(
-        browser={"browser": "chrome", "platform": "windows", "desktop": True},
-        delay=5,
-    )
+    session = requests.Session()
     session.headers.update(HEADERS)
-    try:
-        session.get(HIST_PAGE, timeout=8)
-    except Exception:
-        pass
-
-    prepared = []
-    common_as_of = None
+    packs = []
+    crosschecks = []
 
     for cfg in INDICES:
-        price_map = fetch_price_history(session, cfg["name"], start_price, today)
-        valuation_map = fetch_valuation_history(session, cfg["name"], start_valuation, today)
-        as_of = last_common_date(price_map, valuation_map)
-        common_as_of = as_of if common_as_of is None else min(common_as_of, as_of)
-        prepared.append({"cfg": cfg, "price": price_map, "valuation": valuation_map})
+        core = fetch_screener_core(session, cfg)
+        check = fetch_indexpe_check(session, cfg)
+        crosschecks.append((cfg, check))
+        packs.append({"cfg": cfg, "core": core, "check": check})
+        time.sleep(0.4)
 
-    if common_as_of < today - timedelta(days=10):
-        raise RuntimeError(f"Core index data is stale: latest common date is {common_as_of.isoformat()}")
+    latest_dates = []
+    for pack in packs:
+        price_map = pack["core"]["price_map"]
+        price_daily_map = pack["core"]["price_daily_map"]
+        pe_map = pack["core"]["pe_map"]
+        # Long price and P/E history can be weekly-aggregated by Screener, while
+        # the 365-day price window is daily. Use the long history to establish
+        # the valuation date, then consume the daily series on-or-before it.
+        common = sorted(set(price_map) & set(pe_map))
+        if not common:
+            raise RuntimeError(f"No common Screener price/P-E date for {pack['cfg']['name']}")
+        daily_latest = max(price_daily_map) if price_daily_map else None
+        if daily_latest is None or daily_latest < common[-1] - timedelta(days=7):
+            raise RuntimeError(f"Screener daily price series is stale for {pack['cfg']['name']}")
+        latest_dates.append(common[-1])
+    common_as_of = min(latest_dates)
 
-    results = []
-    prepared_by_key = {x["cfg"]["key"]: x for x in prepared}
+    if common_as_of < date.today() - timedelta(days=10):
+        raise RuntimeError(f"Screener core data is stale: latest common date {common_as_of.isoformat()}")
+
     five_year_start = common_as_of - timedelta(days=5 * 365)
     one_year_start = common_as_of - timedelta(days=365)
+    results = []
 
-    for pack in prepared:
+    for pack in packs:
         cfg = pack["cfg"]
-        price_map = pack["price"]
-        valuation_map = pack["valuation"]
+        core = pack["core"]
+        summary = core["summary"]
+        price_map = core["price_map"]
+        price_daily_map = core["price_daily_map"]
+        pe_map = core["pe_map"]
+        eps_map = core["eps_map"]
 
-        current = pair_on_or_before(price_map, valuation_map, common_as_of)
-        prior_1y = pair_on_or_before(price_map, valuation_map, common_as_of - timedelta(days=365))
-        prior_6m = pair_on_or_before(price_map, valuation_map, common_as_of - timedelta(days=183))
-        prior_3m = pair_on_or_before(price_map, valuation_map, common_as_of - timedelta(days=91))
-        prior_15m = pair_on_or_before(price_map, valuation_map, common_as_of - timedelta(days=456))
-        if not all([current, prior_1y, prior_6m, prior_3m, prior_15m]):
-            raise RuntimeError(f"Insufficient history for {cfg['name']}")
+        cur_pair = paired_on_or_before(price_map, pe_map, common_as_of)
+        if not cur_pair:
+            raise RuntimeError(f"Missing current paired price/P-E for {cfg['name']}")
+        cur_date, cur_price, cur_pe = cur_pair
 
-        pe_values = [
-            item["pe"]
-            for dt, item in valuation_map.items()
-            if five_year_start <= dt <= common_as_of and item.get("pe")
-        ]
-        pb_values = [
-            item.get("pb")
-            for dt, item in valuation_map.items()
-            if five_year_start <= dt <= common_as_of and item.get("pb") and item.get("pb") > 0
-        ]
-        roe_values = [
-            item.get("pb") / item.get("pe") * 100
-            for dt, item in valuation_map.items()
-            if five_year_start <= dt <= common_as_of
-            and item.get("pe")
-            and item.get("pb")
-            and item.get("pe") > 0
-            and item.get("pb") > 0
-        ]
+        # Use the long series for point-to-point 6M/1Y returns so the 365-day
+        # daily API window does not fail at its exact boundary. The dedicated
+        # daily series remains the source for volatility and drawdown.
+        def price_at(delta_days):
+            _, v = on_or_before(price_map, common_as_of - timedelta(days=delta_days))
+            return v
 
-        pe_median = statistics.median(pe_values) if pe_values else None
-        pb_median = statistics.median(pb_values) if pb_values else None
-        pe_pctile = percentile(pe_values, current["pe"])
-        pb_pctile = percentile(pb_values, current.get("pb")) if current.get("pb") else None
+        p6m = price_at(183)
+        p1y = price_at(365)
+        ret_6m = pct_change(cur_price, p6m)
+        ret_1y = pct_change(cur_price, p1y)
 
-        earn_now = earnings_value(current["close"], current["pe"])
-        earn_1y = earnings_value(prior_1y["close"], prior_1y["pe"])
-        earn_3m = earnings_value(prior_3m["close"], prior_3m["pe"])
-        earn_15m = earnings_value(prior_15m["close"], prior_15m["pe"])
-        earn_growth = pct_change(earn_now, earn_1y)
-        growth_3m_ago = pct_change(earn_3m, earn_15m)
-        acceleration = None if earn_growth is None or growth_3m_ago is None else earn_growth - growth_3m_ago
+        pe_values = [v for d, v in pe_map.items() if five_year_start <= d <= common_as_of and v and v > 0]
+        if len(pe_values) < 100:
+            raise RuntimeError(f"Too little 5Y P/E history for {cfg['name']}: {len(pe_values)} points")
+        pe_median = statistics.median(pe_values)
+        pe_pct = percentile(pe_values, cur_pe)
 
-        ret_6m = pct_change(current["close"], prior_6m["close"])
-        ret_1y = pct_change(current["close"], prior_1y["close"])
-        vol_1y = annualized_volatility(price_map, one_year_start, common_as_of)
-        max_dd = max_drawdown(price_map, one_year_start, common_as_of)
-        dd_high = drawdown_from_high(price_map, one_year_start, common_as_of)
+        # Prefer Screener's EPS series; if missing, derive EPS = Price / P-E on common dates.
+        if eps_map:
+            _, eps_now = on_or_before(eps_map, common_as_of)
+            _, eps_1y = on_or_before(eps_map, common_as_of - timedelta(days=365))
+            _, eps_3m = on_or_before(eps_map, common_as_of - timedelta(days=91))
+            _, eps_15m = on_or_before(eps_map, common_as_of - timedelta(days=456))
+        else:
+            def derived_eps(target):
+                pair = paired_on_or_before(price_map, pe_map, target)
+                if not pair:
+                    return None
+                _, p, pe = pair
+                return p / pe if pe else None
+            eps_now = derived_eps(common_as_of)
+            eps_1y = derived_eps(common_as_of - timedelta(days=365))
+            eps_3m = derived_eps(common_as_of - timedelta(days=91))
+            eps_15m = derived_eps(common_as_of - timedelta(days=456))
 
-        implied_roe = None
-        if current.get("pb") and current.get("pe"):
-            implied_roe = current["pb"] / current["pe"] * 100
-        roe_pctile = percentile(roe_values, implied_roe) if implied_roe is not None else None
+        earnings_growth = pct_change(eps_now, eps_1y)
+        growth_3m_ago = pct_change(eps_3m, eps_15m)
+        acceleration = None if earnings_growth is None or growth_3m_ago is None else earnings_growth - growth_3m_ago
+
+        vol = annualized_volatility(price_daily_map, one_year_start, common_as_of)
+        mdd = max_drawdown(price_daily_map, one_year_start, common_as_of)
+        high_52w = max((p for d, p in price_daily_map.items() if one_year_start <= d <= common_as_of), default=summary.get("high_52w"))
+        dd_high = cur_price / high_52w - 1.0 if high_52w else None
+
+        current_pb = summary.get("pb")
+        implied_roe = current_pb / cur_pe * 100 if current_pb and cur_pe else None
+        quality_score = quality_roe_score(implied_roe)
+
+        check = pack["check"]
+        check_gap_pct = None
+        if check.get("current_pe") and cur_pe:
+            check_gap_pct = (check["current_pe"] / cur_pe - 1.0) * 100
 
         item = {
             "key": cfg["key"],
             "label": cfg["label"],
             "index_name": cfg["name"],
             "as_of": common_as_of.isoformat(),
-            "close": round(current["close"], 2),
-            "pe": round(current["pe"], 2),
-            "pb": round(current["pb"], 2) if current.get("pb") is not None else None,
-            "dividend_yield_pct": round(current["div_yield"], 2) if current.get("div_yield") is not None else None,
-            "earnings_yield_pct": round(100 / current["pe"], 2) if current.get("pe") else None,
-            "pe_5y_median": round(pe_median, 2) if pe_median is not None else None,
-            "pe_5y_percentile_pct": round(pe_pctile * 100, 1) if pe_pctile is not None else None,
-            "pb_5y_median": round(pb_median, 2) if pb_median is not None else None,
-            "pb_5y_percentile_pct": round(pb_pctile * 100, 1) if pb_pctile is not None else None,
+            "close": round(cur_price, 2),
+            "pe": round(cur_pe, 2),
+            "pb": round(current_pb, 2) if current_pb is not None else None,
+            "dividend_yield_pct": round(summary.get("dividend_yield"), 2) if summary.get("dividend_yield") is not None else None,
+            "earnings_yield_pct": round(100 / cur_pe, 2) if cur_pe else None,
+            "pe_5y_median": round(pe_median, 2),
+            "pe_5y_percentile_pct": round(pe_pct * 100, 1) if pe_pct is not None else None,
+            "pb_5y_median": None,
+            "pb_5y_percentile_pct": None,
             "implied_roe_pct": round(implied_roe, 1) if implied_roe is not None else None,
-            "implied_roe_5y_percentile_pct": round(roe_pctile * 100, 1) if roe_pctile is not None else None,
-            "ttm_earnings_index": round(earn_now, 4) if earn_now is not None else None,
-            "ttm_earnings_growth_yoy_pct": round(earn_growth * 100, 1) if earn_growth is not None else None,
+            "implied_roe_5y_percentile_pct": None,
+            "quality_score": round(quality_score, 1) if quality_score is not None else None,
+            "ttm_earnings_index": round(eps_now, 4) if eps_now is not None else None,
+            "ttm_earnings_growth_yoy_pct": round(earnings_growth * 100, 1) if earnings_growth is not None else None,
             "earnings_growth_3m_ago_yoy_pct": round(growth_3m_ago * 100, 1) if growth_3m_ago is not None else None,
             "earnings_acceleration_3m_pp": round(acceleration * 100, 1) if acceleration is not None else None,
             "price_return_6m_pct": round(ret_6m * 100, 1) if ret_6m is not None else None,
@@ -630,8 +686,8 @@ def build_live_snapshot(prior=None):
             "relative_return_1y_vs_large_pp": None,
             "valuation_premium_vs_large_pct": None,
             "valuation_premium_5y_percentile_pct": None,
-            "volatility_1y_pct": round(vol_1y * 100, 1) if vol_1y is not None else None,
-            "max_drawdown_1y_pct": round(max_dd * 100, 1) if max_dd is not None else None,
+            "volatility_1y_pct": round(vol * 100, 1) if vol is not None else None,
+            "max_drawdown_1y_pct": round(mdd * 100, 1) if mdd is not None else None,
             "drawdown_from_52w_high_pct": round(dd_high * 100, 1) if dd_high is not None else None,
             "breadth_above_50dma_pct": None,
             "breadth_above_200dma_pct": None,
@@ -640,6 +696,14 @@ def build_live_snapshot(prior=None):
             "breadth_constituents": None,
             "breadth_source_status": "unavailable",
             "breadth_as_of": None,
+            "valuation_crosscheck": {
+                "status": check.get("status"),
+                "source": "IndexPE",
+                "current_pe": check.get("current_pe"),
+                "median_5y": check.get("median_5y"),
+                "as_of": check.get("as_of"),
+                "gap_vs_screener_pct": round(check_gap_pct, 1) if check_gap_pct is not None else None,
+            },
             "opportunity_components": {},
             "opportunity_score": None,
             "opportunity_coverage_pct": None,
@@ -651,44 +715,46 @@ def build_live_snapshot(prior=None):
         }
         results.append(item)
 
-    # Relative valuation and relative momentum use Large Cap as the benchmark.
-    large_result = next(x for x in results if x["key"] == "large")
-    large_val_map = prepared_by_key["large"]["valuation"]
+    # Relative valuation and momentum.
+    result_by_key = {x["key"]: x for x in results}
+    pack_by_key = {x["cfg"]["key"]: x for x in packs}
+    large = result_by_key["large"]
+    large_pe_map = pack_by_key["large"]["core"]["pe_map"]
+
     for item in results:
         if item["key"] == "large":
             item["relative_return_6m_vs_large_pp"] = 0.0
             item["relative_return_1y_vs_large_pp"] = 0.0
             continue
+        item["relative_return_6m_vs_large_pp"] = round(item["price_return_6m_pct"] - large["price_return_6m_pct"], 1)
+        item["relative_return_1y_vs_large_pp"] = round(item["price_return_1y_pct"] - large["price_return_1y_pct"], 1)
+        item["valuation_premium_vs_large_pct"] = round((item["pe"] / large["pe"] - 1) * 100, 1)
 
-        item["relative_return_6m_vs_large_pp"] = round(item["price_return_6m_pct"] - large_result["price_return_6m_pct"], 1)
-        item["relative_return_1y_vs_large_pp"] = round(item["price_return_1y_pct"] - large_result["price_return_1y_pct"], 1)
-        item["valuation_premium_vs_large_pct"] = round((item["pe"] / large_result["pe"] - 1) * 100, 1)
-
-        item_val_map = prepared_by_key[item["key"]]["valuation"]
+        this_pe_map = pack_by_key[item["key"]]["core"]["pe_map"]
         premiums = []
-        for dt in sorted(set(item_val_map) & set(large_val_map)):
-            if not (five_year_start <= dt <= common_as_of):
+        for dt in sorted(set(this_pe_map) & set(large_pe_map)):
+            if dt < five_year_start or dt > common_as_of:
                 continue
-            a = item_val_map[dt].get("pe")
-            b = large_val_map[dt].get("pe")
+            a, b = this_pe_map.get(dt), large_pe_map.get(dt)
             if a and b and a > 0 and b > 0:
                 premiums.append(a / b - 1)
-        current_premium = item["pe"] / large_result["pe"] - 1
-        premium_pctile = percentile(premiums, current_premium)
-        item["valuation_premium_5y_percentile_pct"] = round(premium_pctile * 100, 1) if premium_pctile is not None else None
+        current_premium = item["pe"] / large["pe"] - 1
+        p = percentile(premiums, current_premium)
+        item["valuation_premium_5y_percentile_pct"] = round(p * 100, 1) if p is not None else None
 
-    # Breadth is deliberately isolated from the core refresh. If Yahoo fails, preserve prior breadth if available.
+    # Optional constituent breadth. Core snapshot stays usable if breadth fails.
     breadth_messages = []
-    breadth_live_count = 0
+    breadth_live = 0
     for cfg in INDICES:
-        item = next(x for x in results if x["key"] == cfg["key"])
+        item = result_by_key[cfg["key"]]
         try:
-            symbols = fetch_constituents(session, cfg["constituents"])
+            symbols, universe_source = fetch_constituents(session, cfg)
             breadth = compute_breadth(symbols)
             item.update(breadth)
             item["breadth_source_status"] = "live"
             item["breadth_as_of"] = common_as_of.isoformat()
-            breadth_live_count += 1
+            item["breadth_universe_source"] = universe_source
+            breadth_live += 1
         except Exception as exc:
             old = prior_index(prior, cfg["key"])
             copied = False
@@ -706,12 +772,9 @@ def build_live_snapshot(prior=None):
                 copied = True
             breadth_messages.append(f"{cfg['label']}: {'cached' if copied else 'unavailable'} ({exc})")
 
-    # Build Opportunity and Risk scores after every observable is ready.
+    # Scores.
     for item in results:
-        pe_value = None if item["pe_5y_percentile_pct"] is None else 100 - item["pe_5y_percentile_pct"]
-        pb_value = None if item["pb_5y_percentile_pct"] is None else 100 - item["pb_5y_percentile_pct"]
-        valuation_component, _ = weighted_average({"pe": pe_value, "pb": pb_value}, {"pe": 60, "pb": 40})
-
+        valuation_component = None if item["pe_5y_percentile_pct"] is None else 100 - item["pe_5y_percentile_pct"]
         if item["key"] == "large":
             relative_valuation_component = 50.0
         elif item["valuation_premium_5y_percentile_pct"] is not None:
@@ -719,16 +782,14 @@ def build_live_snapshot(prior=None):
         else:
             relative_valuation_component = None
 
-        g_score = growth_score(item["ttm_earnings_growth_yoy_pct"])
-        a_score = acceleration_score(item["earnings_acceleration_3m_pp"])
-        earnings_component, _ = weighted_average({"growth": g_score, "acceleration": a_score}, {"growth": 65, "acceleration": 35})
-
+        g = growth_score(item["ttm_earnings_growth_yoy_pct"])
+        a = acceleration_score(item["earnings_acceleration_3m_pp"])
+        earnings_component, _ = weighted_average({"growth": g, "acceleration": a}, {"growth": 65, "acceleration": 35})
         breadth_component, _ = weighted_average(
             {"dma50": item["breadth_above_50dma_pct"], "dma200": item["breadth_above_200dma_pct"]},
             {"dma50": 40, "dma200": 60},
         )
-
-        quality_component = item["implied_roe_5y_percentile_pct"]
+        quality_component = item.get("quality_score")
 
         if item["key"] == "large":
             momentum_component = 50.0
@@ -737,7 +798,7 @@ def build_live_snapshot(prior=None):
             m12 = clamp(50 + 2.5 * item["relative_return_1y_vs_large_pp"]) if item["relative_return_1y_vs_large_pp"] is not None else None
             momentum_component, _ = weighted_average({"m6": m6, "m12": m12}, {"m6": 50, "m12": 50})
 
-        opportunity_parts = {
+        opp_parts = {
             "valuation": valuation_component,
             "relative_valuation": relative_valuation_component,
             "earnings": earnings_component,
@@ -745,22 +806,18 @@ def build_live_snapshot(prior=None):
             "quality": quality_component,
             "momentum": momentum_component,
         }
-        opp_score, opp_coverage = weighted_average(opportunity_parts, OPPORTUNITY_WEIGHTS)
-        item["opportunity_components"] = {k: round(v, 1) if v is not None else None for k, v in opportunity_parts.items()}
-        item["opportunity_score"] = round(opp_score, 1) if opp_score is not None else None
-        item["opportunity_coverage_pct"] = round(opp_coverage, 1)
-        item["opportunity_label"] = opportunity_label(opp_score)
+        opp, opp_cov = weighted_average(opp_parts, OPPORTUNITY_WEIGHTS)
+        item["opportunity_components"] = {k: round(v, 1) if v is not None else None for k, v in opp_parts.items()}
+        item["opportunity_score"] = round(opp, 1) if opp is not None else None
+        item["opportunity_coverage_pct"] = round(opp_cov, 1)
+        item["opportunity_label"] = opportunity_label(opp)
 
-        valuation_risk, _ = weighted_average(
-            {"pe": item["pe_5y_percentile_pct"], "pb": item["pb_5y_percentile_pct"]},
-            {"pe": 60, "pb": 40},
-        )
+        valuation_risk = item["pe_5y_percentile_pct"]
         relative_premium_risk = None if item["key"] == "large" else item["valuation_premium_5y_percentile_pct"]
         vol_risk = volatility_risk_score(item["volatility_1y_pct"])
         dd_risk = drawdown_risk_score(item["max_drawdown_1y_pct"])
         breadth_fragility = None if breadth_component is None else 100 - breadth_component
         earnings_deterioration = None if earnings_component is None else 100 - earnings_component
-
         risk_parts = {
             "valuation": valuation_risk,
             "relative_premium": relative_premium_risk,
@@ -769,11 +826,32 @@ def build_live_snapshot(prior=None):
             "breadth_fragility": breadth_fragility,
             "earnings_deterioration": earnings_deterioration,
         }
-        risk_score, risk_coverage = weighted_average(risk_parts, RISK_WEIGHTS)
+        risk, risk_cov = weighted_average(risk_parts, RISK_WEIGHTS)
         item["risk_components"] = {k: round(v, 1) if v is not None else None for k, v in risk_parts.items()}
-        item["risk_score"] = round(risk_score, 1) if risk_score is not None else None
-        item["risk_coverage_pct"] = round(risk_coverage, 1)
-        item["risk_label"] = risk_label(risk_score)
+        item["risk_score"] = round(risk, 1) if risk is not None else None
+        item["risk_coverage_pct"] = round(risk_cov, 1)
+        item["risk_label"] = risk_label(risk)
+
+    crosscheck_warnings = []
+    check_live = 0
+    for item in results:
+        c = item.get("valuation_crosscheck") or {}
+        if c.get("status") == "live":
+            check_live += 1
+            gap = c.get("gap_vs_screener_pct")
+            if gap is not None and abs(gap) > 7:
+                crosscheck_warnings.append(f"{item['label']} P/E differs {gap:+.1f}% between Screener and IndexPE")
+
+    status = "live" if breadth_live == len(INDICES) and check_live == len(INDICES) else "partial"
+    source_message = "Core valuation, earnings and price-history refresh succeeded from Screener."
+    if check_live:
+        source_message += f" IndexPE cross-check live for {check_live}/3 segments."
+    if breadth_live == len(INDICES):
+        source_message += " Breadth refreshed for all segments."
+    else:
+        source_message += f" Breadth live for {breadth_live}/3 segments; cached/unavailable values are labelled."
+    if crosscheck_warnings:
+        source_message += " Cross-check warning: " + "; ".join(crosscheck_warnings) + "."
 
     results = sorted(results, key=lambda x: ["large", "mid", "small"].index(x["key"]))
     ranked = sorted(
@@ -781,48 +859,26 @@ def build_live_snapshot(prior=None):
         key=lambda x: (-x["opportunity_score"], x.get("risk_score") if x.get("risk_score") is not None else 999),
     )
 
-    breadth_status = "live" if breadth_live_count == len(INDICES) else ("partial" if breadth_live_count else "cached_or_unavailable")
-    source_status_value = "live" if breadth_live_count == len(INDICES) else "partial"
-    source_message = "Official Nifty Indices price/valuation refresh succeeded."
-    if breadth_live_count == len(INDICES):
-        source_message += " Constituent breadth refreshed successfully."
-    else:
-        source_message += " Breadth was not fully live; cached or unavailable breadth is clearly marked."
-
     return {
         "as_of": common_as_of.isoformat(),
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "methodology_version": "2.3",
+        "methodology_version": "2.4",
         "source_status": {
-            "status": source_status_value,
-            "used_cached_data": breadth_live_count != len(INDICES),
+            "status": status,
+            "used_cached_data": breadth_live != len(INDICES),
             "message": source_message,
             "components": {
-                "core_index_data": {"status": "live", "message": "Nifty Indices price, P/E, P/B and dividend yield refreshed."},
-                "breadth": {"status": breadth_status, "message": "; ".join(breadth_messages) if breadth_messages else "All three breadth universes refreshed."},
+                "core_index_data": {"status": "live", "message": "Screener index pages + historical chart API refreshed price, P/E and EPS series."},
+                "valuation_crosscheck": {"status": "live" if check_live == len(INDICES) else "partial", "message": f"IndexPE cross-check live for {check_live}/3 segments."},
+                "breadth": {"status": "live" if breadth_live == len(INDICES) else ("partial" if breadth_live else "cached_or_unavailable"), "message": "; ".join(breadth_messages) if breadth_messages else "All three breadth universes refreshed."},
             },
         },
         "sources": [
-            {
-                "name": "Nifty Indices Historical Data",
-                "url": "https://www.niftyindices.com/reports/historical-data",
-                "purpose": "Index prices, P/E, P/B and dividend yield",
-            },
-            {
-                "name": "Nifty Indices Constituents",
-                "url": "https://www.niftyindices.com/indices/equity/broad-based-indices/nifty--50",
-                "purpose": "Official index constituent lists used for breadth universes",
-            },
-            {
-                "name": "Yahoo Finance via yfinance",
-                "url": "https://finance.yahoo.com/",
-                "purpose": "Constituent daily prices used only for 50DMA/200DMA breadth",
-            },
-            {
-                "name": "Nifty Indices P/E methodology",
-                "url": "https://www.niftyindices.com/resources/index-concepts/price-earnings-ratio",
-                "purpose": "Index P/E and trailing earnings methodology",
-            },
+            {"name": "Screener.in index pages", "url": "https://www.screener.in/company/NIFTY/", "purpose": "Current P/E, P/B, dividend yield and index page identifiers"},
+            {"name": "Screener.in chart API", "url": "https://www.screener.in/", "purpose": "Historical index price, P/E and EPS series used for percentiles, earnings, momentum, volatility and drawdown"},
+            {"name": "IndexPE", "url": "https://indexpe.in/", "purpose": "Independent current P/E and 5-year median valuation cross-check"},
+            {"name": "Nifty Indices constituent files", "url": "https://www.niftyindices.com/indices/equity/broad-based-indices", "purpose": "Primary breadth universe; Screener constituent pages are the fallback"},
+            {"name": "Yahoo Finance via yfinance", "url": "https://finance.yahoo.com/", "purpose": "Constituent daily prices used only for breadth"},
         ],
         "indices": results,
         "ranked_research_priority": [x["key"] for x in ranked],
@@ -863,9 +919,10 @@ def main():
             prior["source_status"] = {
                 "status": "cached",
                 "used_cached_data": True,
-                "message": "Core live refresh failed; showing the last good data. Error: " + str(exc),
+                "message": "Core live refresh failed; showing last good data. Error: " + str(exc),
                 "components": {
                     "core_index_data": {"status": "cached", "message": str(exc)},
+                    "valuation_crosscheck": {"status": "cached", "message": "Preserved with prior snapshot."},
                     "breadth": {"status": "cached", "message": "Preserved with prior snapshot."},
                 },
             }
