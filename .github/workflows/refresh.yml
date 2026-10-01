@@ -72,9 +72,18 @@ jobs:
               print("::error::data/latest.json is missing")
               raise SystemExit(1)
           data = json.loads(p.read_text(encoding="utf-8"))
-          status = (data.get("source_status") or {}).get("status")
+          source = data.get("source_status") or {}
+          status = source.get("status")
           version = data.get("methodology_version")
+          message = source.get("message")
+          core = (source.get("components") or {}).get("core_index_data") or {}
           print(f"Dashboard methodology={version}, source_status={status}, as_of={data.get('as_of')}")
+          print(f"Source message: {message}")
+          if core.get("message"):
+              print(f"Core detail: {core.get('message')}")
+          if version != "2.3":
+              print(f"::error::Expected methodology 2.3 but found {version}. The new updater did not produce a fresh snapshot.")
+              raise SystemExit(1)
           if status == "cached":
               print("::error::Core market-data refresh failed. The site was left on last-good data.")
               raise SystemExit(1)
