@@ -17,9 +17,13 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Checkout
+      - name: Checkout latest main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -42,7 +46,7 @@ jobs:
             echo "No data changes"
           else
             git commit -m "Refresh cap allocation dashboard"
-            git push
+            git push origin HEAD:main
           fi
 
       - name: Configure Pages
@@ -56,3 +60,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify refresh health
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("data/latest.json")
+          if not p.exists():
+              print("::error::data/latest.json is missing")
+              raise SystemExit(1)
+          data = json.loads(p.read_text(encoding="utf-8"))
+          status = (data.get("source_status") or {}).get("status")
+          version = data.get("methodology_version")
+          print(f"Dashboard methodology={version}, source_status={status}, as_of={data.get('as_of')}")
+          if status == "cached":
+              print("::error::Core market-data refresh failed. The site was left on last-good data.")
+              raise SystemExit(1)
+          if status == "partial":
+              print("::warning::Core data refreshed, but one or more optional breadth sources were cached/unavailable.")
+          PY
