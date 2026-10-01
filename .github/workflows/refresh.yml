@@ -17,7 +17,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout latest main
         uses: actions/checkout@v4
@@ -37,6 +37,31 @@ jobs:
       - name: Refresh market data
         run: python updater.py
 
+      - name: Verify refresh health
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("data/latest.json")
+          if not p.exists():
+              print("::error::data/latest.json is missing")
+              raise SystemExit(1)
+          data = json.loads(p.read_text(encoding="utf-8"))
+          status = (data.get("source_status") or {}).get("status")
+          version = data.get("methodology_version")
+          print(f"Dashboard methodology={version}, source_status={status}, as_of={data.get('as_of')}")
+          print((data.get("source_status") or {}).get("message"))
+          if version != "2.4":
+              print(f"::error::Expected methodology 2.4 but found {version}. Fresh v2.4 data was not produced.")
+              raise SystemExit(1)
+          if status == "cached":
+              core = ((data.get("source_status") or {}).get("components") or {}).get("core_index_data") or {}
+              print(f"::error::Core refresh failed: {core.get('message')}")
+              raise SystemExit(1)
+          if status == "partial":
+              print("::warning::Core refresh succeeded; one or more optional sources are partial.")
+          PY
+
       - name: Commit refreshed data
         run: |
           git config user.name "github-actions[bot]"
@@ -46,6 +71,7 @@ jobs:
             echo "No data changes"
           else
             git commit -m "Refresh cap allocation dashboard"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
 
@@ -60,33 +86,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Verify refresh health
-        if: always()
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          p = Path("data/latest.json")
-          if not p.exists():
-              print("::error::data/latest.json is missing")
-              raise SystemExit(1)
-          data = json.loads(p.read_text(encoding="utf-8"))
-          source = data.get("source_status") or {}
-          status = source.get("status")
-          version = data.get("methodology_version")
-          message = source.get("message")
-          core = (source.get("components") or {}).get("core_index_data") or {}
-          print(f"Dashboard methodology={version}, source_status={status}, as_of={data.get('as_of')}")
-          print(f"Source message: {message}")
-          if core.get("message"):
-              print(f"Core detail: {core.get('message')}")
-          if version != "2.3":
-              print(f"::error::Expected methodology 2.3 but found {version}. The new updater did not produce a fresh snapshot.")
-              raise SystemExit(1)
-          if status == "cached":
-              print("::error::Core market-data refresh failed. The site was left on last-good data.")
-              raise SystemExit(1)
-          if status == "partial":
-              print("::warning::Core data refreshed, but one or more optional breadth sources were cached/unavailable.")
-          PY
