@@ -8,17 +8,24 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
+import cloudscraper
 
-BASE = "https://niftyindices.com"
+BASE = "https://www.niftyindices.com"
 HIST_PAGE = BASE + "/reports/historical-data"
-# Nifty Indices changed these public historical endpoints in Jul-2026.
+# The official site is protected by anti-bot middleware. Keep both endpoint families
+# because Nifty Indices has exposed both forms at different times. The legacy ASP.NET
+# path remains the best-documented public endpoint as of Oct-2026.
 PRICE_URLS = [
-    BASE + "/BackPage/getHistoricaldatatabletoString",
     BASE + "/Backpage.aspx/getHistoricaldatatabletoString",
+    BASE + "/BackPage/getHistoricaldatatabletoString",
+    "https://niftyindices.com/Backpage.aspx/getHistoricaldatatabletoString",
+    "https://niftyindices.com/BackPage/getHistoricaldatatabletoString",
 ]
 VALUATION_URLS = [
-    BASE + "/BackPage/getpepbHistoricaldataDBtoString",
     BASE + "/Backpage.aspx/getpepbHistoricaldataDBtoString",
+    BASE + "/BackPage/getpepbHistoricaldataDBtoString",
+    "https://niftyindices.com/Backpage.aspx/getpepbHistoricaldataDBtoString",
+    "https://niftyindices.com/BackPage/getpepbHistoricaldataDBtoString",
 ]
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
@@ -120,7 +127,7 @@ def save_json(path, data):
     path.write_text(json.dumps(data, indent=2, sort_keys=False), encoding="utf-8")
 
 
-def chunks(start, end, days=350):
+def chunks(start, end, days=2500):
     cursor = start
     while cursor <= end:
         chunk_end = min(cursor + timedelta(days=days - 1), end)
@@ -136,9 +143,11 @@ def decode_rows(resp):
     try:
         payload = resp.json()
     except Exception as exc:
-        preview = raw[:180].replace("\n", " ")
+        preview = raw[:240].replace("\n", " ")
+        ctype = resp.headers.get("content-type", "")
+        server = resp.headers.get("server", "")
         raise RuntimeError(
-            f"Non-JSON response from {resp.url} (HTTP {resp.status_code}): {preview!r}"
+            f"Non-JSON response from {resp.url} (HTTP {resp.status_code}, content-type={ctype!r}, server={server!r}): {preview!r}"
         ) from exc
 
     # Current API (Jul-2026 onward): direct JSON array.
@@ -177,6 +186,7 @@ def request_rows(session, urls, payload, retries=2):
                 rows = decode_rows(resp)
                 if not rows:
                     raise RuntimeError(f"Empty data array from {url}")
+                time.sleep(0.7)
                 return rows
             except Exception as exc:
                 last_error = exc
@@ -507,7 +517,12 @@ def build_live_snapshot(prior=None):
     start_price = today - timedelta(days=500)
     start_valuation = today - timedelta(days=5 * 365 + 60)
 
-    session = requests.Session()
+    # cloudscraper handles the JavaScript/Cloudflare-style challenge that can cause
+    # plain requests.Session() to receive HTML instead of JSON on GitHub runners.
+    session = cloudscraper.create_scraper(
+        browser={"browser": "chrome", "platform": "windows", "desktop": True},
+        delay=5,
+    )
     session.headers.update(HEADERS)
     try:
         session.get(HIST_PAGE, timeout=8)
@@ -777,7 +792,7 @@ def build_live_snapshot(prior=None):
     return {
         "as_of": common_as_of.isoformat(),
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "methodology_version": "2.2",
+        "methodology_version": "2.3",
         "source_status": {
             "status": source_status_value,
             "used_cached_data": breadth_live_count != len(INDICES),
