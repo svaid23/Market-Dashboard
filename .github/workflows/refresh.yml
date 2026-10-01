@@ -34,6 +34,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Test parsers and scoring
+        run: python updater.py --self-test
+
       - name: Refresh market data
         run: python updater.py
 
@@ -51,15 +54,13 @@ jobs:
           version = data.get("methodology_version")
           print(f"Dashboard methodology={version}, source_status={status}, as_of={data.get('as_of')}")
           print((data.get("source_status") or {}).get("message"))
-          if version != "2.4":
-              print(f"::error::Expected methodology 2.4 but found {version}. Fresh v2.4 data was not produced.")
+          if version != "3.0":
+              print(f"::error::Expected methodology 3.0 but found {version}. Fresh v3 data was not produced.")
               raise SystemExit(1)
           if status == "cached":
-              core = ((data.get("source_status") or {}).get("components") or {}).get("core_index_data") or {}
-              print(f"::error::Core refresh failed: {core.get('message')}")
-              raise SystemExit(1)
-          if status == "partial":
-              print("::warning::Core refresh succeeded; one or more optional sources are partial.")
+              print("::warning::Live core sources were unavailable; deploying last-good v3 data instead of breaking the site.")
+          elif status == "partial":
+              print("::warning::Core dashboard refreshed; one or more optional/slow-moving sources used reference or cached values.")
           PY
 
       - name: Commit refreshed data
