@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Automated Large, Mid and Small cap opportunity dashboard for Indian equity indices.">
-  <title>India Market Cap Opportunity Dashboard</title>
+  <meta name="description" content="Automated Large, Mid and Small cap evidence dashboard for Indian equity allocation research.">
+  <title>India Market Cap Evidence Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
       <div>
         <div class="eyebrow">INDIA EQUITY ALLOCATION</div>
         <h1>Large / Mid / Small Cap Dashboard</h1>
-        <p class="subtitle">A zero-forecast scorecard using valuation, actual earnings momentum and relative price momentum.</p>
+        <p class="subtitle">Opportunity and risk separated. No future EPS or exit P/E forecast required.</p>
       </div>
       <div class="refresh-box">
         <div class="status-row">
@@ -22,6 +22,7 @@
         </div>
         <div class="refresh-meta">Data as of <strong id="asOf">--</strong></div>
         <div class="refresh-meta">Auto refresh: 1st and 16th, 17:45 IST</div>
+        <div class="refresh-meta">Methodology <strong id="methodVersion">--</strong></div>
       </div>
     </header>
 
@@ -32,58 +33,80 @@
         <div class="panel-head">
           <div>
             <div class="eyebrow">CURRENT READ</div>
-            <h2>Where does the evidence point?</h2>
+            <h2>What is driving the setup?</h2>
           </div>
-          <span class="pill">Research priority, not buy/sell</span>
+          <span class="pill">Evidence framework, not buy/sell</span>
         </div>
         <div id="insightText" class="insight-text"></div>
       </section>
 
-      <section class="two-col">
+      <section class="three-col diagnostics">
         <article class="panel">
           <div class="panel-head compact">
-            <div>
-              <div class="eyebrow">VALUATION</div>
-              <h2>Current P/E vs 5Y median</h2>
-            </div>
+            <div><div class="eyebrow">VALUATION</div><h2>Historical positioning</h2></div>
           </div>
-          <div id="valuationChart" class="bar-chart"></div>
-          <p class="chart-note">Negative means cheaper than its own 5-year median. Positive means more expensive.</p>
+          <div id="valuationMatrix" class="metric-matrix"></div>
+          <p class="chart-note">Percentile = where today's multiple sits within its own 5-year history. Lower is cheaper.</p>
         </article>
 
         <article class="panel">
           <div class="panel-head compact">
-            <div>
-              <div class="eyebrow">EARNINGS</div>
-              <h2>Actual trailing earnings growth</h2>
-            </div>
+            <div><div class="eyebrow">EARNINGS</div><h2>Growth & acceleration</h2></div>
           </div>
-          <div id="earningsChart" class="bar-chart"></div>
-          <p class="chart-note">Derived from index level / index P/E, compared with the same period one year earlier.</p>
+          <div id="earningsMatrix" class="metric-matrix"></div>
+          <p class="chart-note">Acceleration compares current YoY trailing earnings growth with the YoY growth rate three months earlier.</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head compact">
+            <div><div class="eyebrow">BREADTH</div><h2>Participation under the index</h2></div>
+          </div>
+          <div id="breadthMatrix" class="metric-matrix"></div>
+          <p class="chart-note">% of constituents above their 50-day and 200-day moving averages. Coverage is shown when data is partial.</p>
         </article>
       </section>
 
-      <section class="two-col">
+      <section class="three-col diagnostics">
         <article class="panel">
           <div class="panel-head compact">
-            <div>
-              <div class="eyebrow">MOMENTUM</div>
-              <h2>Price returns</h2>
-            </div>
+            <div><div class="eyebrow">QUALITY</div><h2>Earnings yield & ROE proxy</h2></div>
           </div>
-          <div id="momentumChart" class="momentum-grid"></div>
-          <p class="chart-note">Mid and Small are scored relative to Nifty 50. Large receives a neutral 1/2 benchmark score.</p>
+          <div id="qualityMatrix" class="metric-matrix"></div>
+          <p class="chart-note">Implied ROE proxy = P/B divided by P/E. It is useful at index level but is not a substitute for company-level ROE analysis.</p>
         </article>
 
         <article class="panel">
           <div class="panel-head compact">
-            <div>
-              <div class="eyebrow">RELATIVE VALUATION</div>
-              <h2>P/E premium vs Large Cap</h2>
-            </div>
+            <div><div class="eyebrow">RELATIVE VALUE</div><h2>Premium vs Large Cap</h2></div>
           </div>
-          <div id="premiumChart" class="premium-grid"></div>
-          <p class="chart-note">A higher premium means the segment needs stronger future earnings to justify today's price.</p>
+          <div id="premiumMatrix" class="metric-matrix"></div>
+          <p class="chart-note">The premium percentile shows whether today's Mid/Small P/E premium to Nifty 50 is low or high versus its own 5-year history.</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head compact">
+            <div><div class="eyebrow">RISK</div><h2>Volatility & drawdown</h2></div>
+          </div>
+          <div id="riskMatrix" class="metric-matrix"></div>
+          <p class="chart-note">Volatility is annualised from daily returns. Max drawdown is the largest peak-to-trough decline over the last year.</p>
+        </article>
+      </section>
+
+      <section class="two-col score-panels">
+        <article class="panel">
+          <div class="panel-head compact">
+            <div><div class="eyebrow">OPPORTUNITY</div><h2>Opportunity score /100</h2></div>
+          </div>
+          <div id="opportunityBars" class="score-bars"></div>
+          <p class="chart-note">Higher = more supportive observable evidence across valuation, earnings, breadth, quality and momentum.</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head compact">
+            <div><div class="eyebrow">RISK</div><h2>Risk score /100</h2></div>
+          </div>
+          <div id="riskBars" class="score-bars"></div>
+          <p class="chart-note">Higher = more valuation, volatility, drawdown, breadth or earnings risk. It is not a probability of loss.</p>
         </article>
       </section>
 
@@ -93,23 +116,25 @@
             <div class="eyebrow">FULL SCORECARD</div>
             <h2>Evidence in one view</h2>
           </div>
-          <button id="methodBtn" class="text-btn" type="button">Scoring rules</button>
+          <button id="methodBtn" class="text-btn" type="button">Methodology & weights</button>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Segment</th>
-                <th>Current P/E</th>
-                <th>5Y Median</th>
-                <th>Vs Median</th>
-                <th>Valuation /4</th>
+                <th>Opportunity</th>
+                <th>Risk</th>
+                <th>P/E</th>
+                <th>P/E 5Y %ile</th>
+                <th>P/B 5Y %ile</th>
+                <th>Premium vs Large</th>
+                <th>Premium %ile</th>
                 <th>TTM Earnings YoY</th>
-                <th>Earnings /4</th>
-                <th>6M Return</th>
-                <th>1Y Return</th>
-                <th>Momentum /2</th>
-                <th>Total /10</th>
+                <th>3M Accel.</th>
+                <th>&gt;200DMA</th>
+                <th>1Y Vol.</th>
+                <th>1Y Max DD</th>
               </tr>
             </thead>
             <tbody id="scoreTable"></tbody>
@@ -117,72 +142,53 @@
         </div>
       </section>
 
-      <section class="panel history-panel">
-        <div class="panel-head compact">
-          <div>
-            <div class="eyebrow">TREND</div>
-            <h2>Score history</h2>
+      <section class="two-col history-panels">
+        <article class="panel history-panel">
+          <div class="panel-head compact">
+            <div><div class="eyebrow">TREND</div><h2>Opportunity score history</h2></div>
           </div>
-        </div>
-        <div id="historyChart" class="history-chart"></div>
-        <p class="chart-note">A new point is added after each successful scheduled refresh.</p>
+          <div id="opportunityHistory" class="history-chart"></div>
+        </article>
+        <article class="panel history-panel">
+          <div class="panel-head compact">
+            <div><div class="eyebrow">TREND</div><h2>Risk score history</h2></div>
+          </div>
+          <div id="riskHistory" class="history-chart"></div>
+        </article>
       </section>
 
       <section id="methodology" class="panel methodology hidden">
         <div class="panel-head compact">
           <div>
-            <div class="eyebrow">METHODOLOGY</div>
-            <h2>How the 10-point score works</h2>
+            <div class="eyebrow">METHODOLOGY V2</div>
+            <h2>How the framework works</h2>
           </div>
         </div>
-        <div class="method-grid">
-          <div class="method-card">
-            <h3>Valuation /4</h3>
-            <p>Current P/E compared with its own 5-year median.</p>
-            <ul>
-              <li>&gt;20% cheaper: 4</li>
-              <li>10-20% cheaper: 3</li>
-              <li>Within +/-10%: 2</li>
-              <li>10-20% expensive: 1</li>
-              <li>&gt;20% expensive: 0</li>
-            </ul>
+        <div class="method-columns">
+          <div>
+            <h3>Opportunity score</h3>
+            <div id="opportunityWeights" class="weight-list"></div>
           </div>
-          <div class="method-card">
-            <h3>Earnings /4</h3>
-            <p>Year-on-year growth in trailing index earnings, calculated as Index Level / P/E.</p>
-            <ul>
-              <li>&gt;15%: 4</li>
-              <li>8-15%: 3</li>
-              <li>0-8%: 2</li>
-              <li>-10% to 0%: 1</li>
-              <li>&lt;-10%: 0</li>
-            </ul>
-          </div>
-          <div class="method-card">
-            <h3>Momentum /2</h3>
-            <p>Mid and Small are compared with Nifty 50 over 6 and 12 months.</p>
-            <ul>
-              <li>Beats Large in both: 2</li>
-              <li>Beats Large in one: 1</li>
-              <li>Beats Large in neither: 0</li>
-              <li>Large benchmark: neutral 1</li>
-            </ul>
+          <div>
+            <h3>Risk score</h3>
+            <div id="riskWeights" class="weight-list"></div>
           </div>
         </div>
-        <div class="score-meaning">
-          <span><strong>8-10</strong> High research priority</span>
-          <span><strong>6-7</strong> Worth deeper research</span>
-          <span><strong>4-5</strong> Mixed setup</span>
-          <span><strong>0-3</strong> Demanding setup</span>
+        <div class="method-notes">
+          <p><strong>Valuation:</strong> P/E and P/B percentiles versus the segment's own 5-year history.</p>
+          <p><strong>Relative valuation:</strong> Mid/Small P/E premium versus Nifty 50, compared with that premium's own 5-year distribution.</p>
+          <p><strong>Earnings:</strong> actual trailing index earnings growth plus whether that growth rate is accelerating or decelerating.</p>
+          <p><strong>Breadth:</strong> constituent participation above 50DMA and 200DMA; a broad rally is treated differently from a narrow index move.</p>
+          <p><strong>Quality:</strong> index-level implied ROE proxy (P/B ÷ P/E) relative to its own history.</p>
+          <p><strong>Momentum:</strong> Mid/Small 6M and 12M performance relative to Large Cap. Large is the neutral benchmark.</p>
+          <p><strong>Risk:</strong> valuation stretch, relative premium, realised volatility, max drawdown, weak breadth and earnings deterioration are scored separately.</p>
+          <p><strong>Missing data:</strong> scores automatically reweight across available components and show score coverage. Breadth can fall back to the last successful refresh.</p>
         </div>
       </section>
 
       <section class="panel source-panel">
         <div class="panel-head compact">
-          <div>
-            <div class="eyebrow">DATA</div>
-            <h2>Source & automation health</h2>
-          </div>
+          <div><div class="eyebrow">DATA HEALTH</div><h2>Source & automation status</h2></div>
         </div>
         <div id="sourceDetails" class="source-details"></div>
       </section>
@@ -190,7 +196,7 @@
 
     <footer>
       <p id="disclaimer"></p>
-      <p>Built for periodic allocation research. The dashboard does not forecast future returns or future P/E multiples.</p>
+      <p>Built for periodic allocation research. The dashboard deliberately avoids forecasting future index EPS or future P/E multiples.</p>
     </footer>
   </div>
 
