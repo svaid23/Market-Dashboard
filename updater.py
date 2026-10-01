@@ -9,10 +9,11 @@ from pathlib import Path
 
 import requests
 
-BASE = "https://www.niftyindices.com"
+BASE = "https://niftyindices.com"
 HIST_PAGE = BASE + "/reports/historical-data"
-PRICE_URL = BASE + "/Backpage.aspx/getHistoricaldatatabletoString"
-VALUATION_URL = BASE + "/Backpage.aspx/getpepbHistoricaldataDBtoString"
+# Nifty Indices changed these public historical endpoints in Jul-2026.
+PRICE_URL = BASE + "/BackPage/getHistoricaldatatabletoString"
+VALUATION_URL = BASE + "/BackPage/getpepbHistoricaldataDBtoString"
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 LATEST_FILE = DATA_DIR / "latest.json"
@@ -43,13 +44,16 @@ INDICES = [
 ]
 
 HEADERS = {
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "Accept-Language": "en-US,en;q=0.9",
     "Content-Type": "application/json; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest",
+    "Origin": BASE,
     "Referer": HIST_PAGE,
-    "User-Agent": "Mozilla/5.0 (compatible; CapAllocationDashboard/2.0)",
+    "X-Requested-With": "XMLHttpRequest",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
 }
 GET_HEADERS = {
-    "Referer": "https://www.niftyindices.com/",
+    "Referer": BASE + "/",
     "User-Agent": HEADERS["User-Agent"],
     "Accept": "text/csv,text/plain,*/*",
 }
@@ -119,14 +123,34 @@ def chunks(start, end, days=350):
 
 
 def decode_rows(resp):
-    payload = resp.json()
-    rows = payload.get("d", [])
-    if isinstance(rows, str):
-        rows = rows.strip()
-        if not rows:
-            return []
-        rows = json.loads(rows)
-    return rows if isinstance(rows, list) else []
+    """Decode both the current Nifty Indices response and the legacy ASP.NET wrapper."""
+    raw = (resp.text or "").lstrip("\ufeff").strip()
+    if not raw:
+        raise RuntimeError(f"Empty response from {resp.url}")
+    try:
+        payload = resp.json()
+    except Exception as exc:
+        preview = raw[:180].replace("\n", " ")
+        raise RuntimeError(
+            f"Non-JSON response from {resp.url} (HTTP {resp.status_code}): {preview!r}"
+        ) from exc
+
+    # Current API (Jul-2026 onward): direct JSON array.
+    if isinstance(payload, list):
+        return payload
+
+    # Legacy API: {"d": "[...]"} or occasionally {"d": [...]}
+    if isinstance(payload, dict):
+        rows = payload.get("d", payload.get("data", []))
+        if isinstance(rows, str):
+            rows = rows.strip()
+            if not rows:
+                return []
+            rows = json.loads(rows)
+        if isinstance(rows, list):
+            return rows
+
+    raise RuntimeError(f"Unexpected JSON shape from {resp.url}: {type(payload).__name__}")
 
 
 def request_rows(session, url, payload, retries=3):
@@ -135,9 +159,17 @@ def request_rows(session, url, payload, retries=3):
         try:
             resp = session.post(url, headers=HEADERS, json=payload, timeout=45)
             resp.raise_for_status()
-            return decode_rows(resp)
+            rows = decode_rows(resp)
+            if not rows:
+                raise RuntimeError(f"Empty data array from {url}")
+            return rows
         except Exception as exc:
             last_error = exc
+            # Refresh the cookie/session before retrying.
+            try:
+                session.get(HIST_PAGE, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=10)
+            except Exception:
+                pass
             time.sleep(1.5 * (attempt + 1))
     raise RuntimeError(f"Data request failed: {last_error}")
 
@@ -170,8 +202,8 @@ def fetch_valuation_history(session, index_name, start, end):
             "{'name':'%s','startDate':'%s','endDate':'%s','indexName':'%s'}"
             % (
                 index_name,
-                chunk_start.strftime("%d %b %Y"),
-                chunk_end.strftime("%d %b %Y"),
+                chunk_start.strftime("%d-%b-%Y"),
+                chunk_end.strftime("%d-%b-%Y"),
                 index_name,
             )
         )
@@ -461,8 +493,9 @@ def build_live_snapshot(prior=None):
     start_valuation = today - timedelta(days=5 * 365 + 60)
 
     session = requests.Session()
+    session.headers.update(HEADERS)
     try:
-        session.get(HIST_PAGE, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=8)
+        session.get(HIST_PAGE, timeout=8)
     except Exception:
         pass
 
@@ -726,7 +759,7 @@ def build_live_snapshot(prior=None):
     return {
         "as_of": common_as_of.isoformat(),
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "methodology_version": "2.0",
+        "methodology_version": "2.1",
         "source_status": {
             "status": source_status_value,
             "used_cached_data": breadth_live_count != len(INDICES),
