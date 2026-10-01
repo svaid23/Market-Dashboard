@@ -1,11 +1,21 @@
 {
   "as_of": "2026-09-30",
-  "generated_at": "2026-10-01T12:36:15.519768+00:00",
+  "generated_at": "2026-10-01T17:28:19.933894+00:00",
   "methodology_version": "1.0",
   "source_status": {
     "status": "cached",
     "used_cached_data": true,
-    "message": "Live refresh failed; showing last good data. Error: Data request failed: Expecting value: line 1 column 2 (char 1)"
+    "message": "Core live refresh failed; showing the last good data. Error: Data request failed: Expecting value: line 1 column 2 (char 1)",
+    "components": {
+      "core_index_data": {
+        "status": "cached",
+        "message": "Data request failed: Expecting value: line 1 column 2 (char 1)"
+      },
+      "breadth": {
+        "status": "cached",
+        "message": "Preserved with prior snapshot."
+      }
+    }
   },
   "sources": [
     {
