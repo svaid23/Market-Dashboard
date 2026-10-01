@@ -12,8 +12,14 @@ import requests
 BASE = "https://niftyindices.com"
 HIST_PAGE = BASE + "/reports/historical-data"
 # Nifty Indices changed these public historical endpoints in Jul-2026.
-PRICE_URL = BASE + "/BackPage/getHistoricaldatatabletoString"
-VALUATION_URL = BASE + "/BackPage/getpepbHistoricaldataDBtoString"
+PRICE_URLS = [
+    BASE + "/BackPage/getHistoricaldatatabletoString",
+    BASE + "/Backpage.aspx/getHistoricaldatatabletoString",
+]
+VALUATION_URLS = [
+    BASE + "/BackPage/getpepbHistoricaldataDBtoString",
+    BASE + "/Backpage.aspx/getpepbHistoricaldataDBtoString",
+]
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 LATEST_FILE = DATA_DIR / "latest.json"
@@ -153,25 +159,34 @@ def decode_rows(resp):
     raise RuntimeError(f"Unexpected JSON shape from {resp.url}: {type(payload).__name__}")
 
 
-def request_rows(session, url, payload, retries=3):
-    last_error = None
-    for attempt in range(retries):
-        try:
-            resp = session.post(url, headers=HEADERS, json=payload, timeout=45)
-            resp.raise_for_status()
-            rows = decode_rows(resp)
-            if not rows:
-                raise RuntimeError(f"Empty data array from {url}")
-            return rows
-        except Exception as exc:
-            last_error = exc
-            # Refresh the cookie/session before retrying.
+def request_rows(session, urls, payload, retries=2):
+    """Try the current Nifty Indices endpoint first, then the legacy endpoint.
+
+    This protects the scheduled dashboard from upstream path/response migrations.
+    Both direct-array and legacy {"d": "[...]"} response shapes are supported.
+    """
+    if isinstance(urls, str):
+        urls = [urls]
+    errors = []
+    for url in urls:
+        last_error = None
+        for attempt in range(retries):
             try:
-                session.get(HIST_PAGE, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=10)
-            except Exception:
-                pass
-            time.sleep(1.5 * (attempt + 1))
-    raise RuntimeError(f"Data request failed: {last_error}")
+                resp = session.post(url, headers=HEADERS, json=payload, timeout=45)
+                resp.raise_for_status()
+                rows = decode_rows(resp)
+                if not rows:
+                    raise RuntimeError(f"Empty data array from {url}")
+                return rows
+            except Exception as exc:
+                last_error = exc
+                try:
+                    session.get(HIST_PAGE, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=10)
+                except Exception:
+                    pass
+                time.sleep(1.5 * (attempt + 1))
+        errors.append(f"{url}: {last_error}")
+    raise RuntimeError("All Nifty Indices endpoints failed: " + " | ".join(errors))
 
 
 def fetch_price_history(session, index_name, start, end):
@@ -186,7 +201,7 @@ def fetch_price_history(session, index_name, start, end):
                 index_name,
             )
         )
-        rows = request_rows(session, PRICE_URL, {"cinfo": cinfo})
+        rows = request_rows(session, PRICE_URLS, {"cinfo": cinfo})
         for row in rows:
             dt = parse_any_date(row.get("HistoricalDate") or row.get("DATE") or row.get("Date"))
             close = safe_float(row.get("CLOSE") or row.get("Close") or row.get("close"))
@@ -207,7 +222,7 @@ def fetch_valuation_history(session, index_name, start, end):
                 index_name,
             )
         )
-        rows = request_rows(session, VALUATION_URL, {"cinfo": cinfo})
+        rows = request_rows(session, VALUATION_URLS, {"cinfo": cinfo})
         for row in rows:
             dt = parse_any_date(row.get("DATE") or row.get("Date") or row.get("HistoricalDate"))
             pe = safe_float(row.get("pe") or row.get("P/E") or row.get("PE"))
@@ -509,6 +524,9 @@ def build_live_snapshot(prior=None):
         common_as_of = as_of if common_as_of is None else min(common_as_of, as_of)
         prepared.append({"cfg": cfg, "price": price_map, "valuation": valuation_map})
 
+    if common_as_of < today - timedelta(days=10):
+        raise RuntimeError(f"Core index data is stale: latest common date is {common_as_of.isoformat()}")
+
     results = []
     prepared_by_key = {x["cfg"]["key"]: x for x in prepared}
     five_year_start = common_as_of - timedelta(days=5 * 365)
@@ -759,7 +777,7 @@ def build_live_snapshot(prior=None):
     return {
         "as_of": common_as_of.isoformat(),
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "methodology_version": "2.1",
+        "methodology_version": "2.2",
         "source_status": {
             "status": source_status_value,
             "used_cached_data": breadth_live_count != len(INDICES),
@@ -837,6 +855,7 @@ def main():
                 },
             }
             save_json(LATEST_FILE, prior)
+            print("::warning::Core refresh failed; preserved last good data: " + str(exc))
             print("Refresh failed; preserved last good data:", exc)
         else:
             raise
