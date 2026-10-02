@@ -33,14 +33,19 @@ jobs:
           python - <<'PY'
           import json
           d=json.load(open('data/latest.json'))
-          assert d.get('methodology_version')=='4.2', f"Expected methodology 4.2, got {d.get('methodology_version')}"
+          assert d.get('methodology_version')=='4.3', f"Expected methodology 4.3, got {d.get('methodology_version')}"
           assert set(d.get('segments',{}))=={'large','mid','small'}
           fd=d.get('fii_dii',{})
           if fd.get('rows_available',0)<20:
               assert fd.get('fii_20d') is None and fd.get('dii_20d') is None, '20D flow must be blank when fewer than 20 sessions are available'
           ec=d.get('external_consensus',{})
-          assert isinstance(ec,dict) and 'summary' in ec and 'sources' in ec, 'v4.2 consensus structure missing'
+          assert isinstance(ec,dict) and 'summary' in ec and 'sources' in ec, 'v4.3 consensus structure missing'
           assert len(ec.get('sources',[]))==10, 'Expected 10 external consensus sources'
+          for cap,s in d.get('segments',{}).items():
+              basis=s.get('pe_percentile_basis','')
+              assert 'monthly medians' in basis, f'{cap}: core P/E percentile must use common 5Y monthly methodology, got {basis}'
+              if s.get('core_valuation_status')!='live':
+                  assert s.get('valuation_condition')=='Core valuation data unavailable', f'{cap}: degraded core data must not issue a valuation conclusion'
           print('Validated methodology',d['methodology_version'],'as of',d.get('as_of'))
           PY
       - name: Commit refreshed data
