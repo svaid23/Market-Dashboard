@@ -1,8 +1,8 @@
 {
-  "methodology_version": "4.1",
-  "generated_at": "2026-10-02T16:02:27.970892+00:00",
+  "methodology_version": "4.2",
+  "generated_at": "2026-10-02T17:11:57.233219+00:00",
   "as_of": "2026-10-02",
-  "model_note": "Core valuation conclusion uses P/E percentile, P/B percentile, relative valuation premium, equity-bond spread, earnings trend and ROE proxy. Technicals, breadth, flows and external consensus are informational only.",
+  "model_note": "Valuation condition is driven by historical P/E and P/B positioning plus relative P/E premium for Mid/Small. Equity-bond spread, earnings trend and ROE proxy validate the read. Technicals, breadth, flows and external consensus are informational only.",
   "segments": {
     "large": {
       "label": "Large Cap",
@@ -10,9 +10,11 @@
       "pe": 18.97,
       "pb": 2.84,
       "dividend_yield": 1.2,
-      "pe_5y_percentile": 1.6666666666666667,
-      "pb_5y_percentile": 1.6666666666666667,
-      "div_yield_expensiveness_percentile": 76.66666666666667,
+      "pe_5y_percentile": 0.0,
+      "pe_percentile_basis": "5Y daily data from IndexPE",
+      "pb_5y_percentile": 0.0,
+      "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
+      "div_yield_expensiveness_percentile": 76.27118644067797,
       "relative_pe_vs_large": null,
       "relative_pe_median": null,
       "relative_premium_5y_percentile": null,
@@ -20,6 +22,32 @@
       "roe_proxy_pct": 14.971006852925672,
       "earnings_growth_1y_pct": 8.349027322137026,
       "earnings_cagr_3y_pct": 12.686519110068527,
+      "earnings_validation": {
+        "growth_1y_pct": 8.349027322137026,
+        "cagr_3y_pct": 12.686519110068527,
+        "status": "live",
+        "validation": [
+          {
+            "check": "current_index_level_crosscheck",
+            "difference_pct": 0.0,
+            "pass": true
+          },
+          {
+            "check": "1y_growth_sanity",
+            "pass": true
+          },
+          {
+            "check": "3y_cagr_sanity",
+            "pass": true
+          },
+          {
+            "check": "indexpe_5y_reference_available",
+            "reference_5y_cagr_pct": 13.44,
+            "pass": true
+          }
+        ],
+        "note": "Approximate index earnings = index level / P/E; historical P/E uses monthly medians. Cross-checked against Dhan/Yahoo and IndexPE where available."
+      },
       "trend": {
         "level": 23516.5,
         "dma50": 25002.0,
@@ -44,10 +72,10 @@
         "reported_pe_percentile": 21.0,
         "relative_pe_vs_nifty50": null,
         "relative_pe_median_vs_nifty50": null,
-        "pe_5y_percentile": 1.6666666666666667,
-        "pb_5y_percentile": 1.6666666666666667,
-        "percentile_basis": "5Y monthly medians from WealthTicker tables",
-        "dy_5y_expensiveness_percentile": 76.66666666666667,
+        "pe_5y_percentile_monthly": 0.0,
+        "pb_5y_percentile": 0.0,
+        "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
+        "dy_5y_expensiveness_percentile": 76.27118644067797,
         "pe_monthly_5y": [
           25.52,
           23.74,
@@ -236,6 +264,16 @@
         ],
         "as_of_text": "1 Oct 2026"
       },
+      "_indexpe": {
+        "source": "https://indexpe.in/nifty-100",
+        "status": "live",
+        "pe": 18.97,
+        "pe_5y_median": 22.2,
+        "pe_5y_percentile_daily": 0.0,
+        "pe_daily_observations": null,
+        "earnings_cagr_5y_pct": 13.44,
+        "as_of_text": "1 Oct 2026"
+      },
       "equity_bond_spread_pp": -1.868518713758566,
       "valuation_condition": "Below-normal valuation"
     },
@@ -245,16 +283,44 @@
       "pe": 28.1,
       "pb": 3.79,
       "dividend_yield": 0.72,
-      "pe_5y_percentile": 45.0,
-      "pb_5y_percentile": 31.666666666666668,
-      "div_yield_expensiveness_percentile": 81.66666666666667,
+      "pe_5y_percentile": 44.067796610169495,
+      "pe_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables; current observation excluded",
+      "pb_5y_percentile": 30.508474576271187,
+      "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
+      "div_yield_expensiveness_percentile": 81.35593220338983,
       "relative_pe_vs_large": 1.481286241433843,
-      "relative_pe_median": 1.4378416230621098,
-      "relative_premium_5y_percentile": 56.666666666666664,
+      "relative_pe_median": 1.4306930693069306,
+      "relative_premium_5y_percentile": 55.932203389830505,
       "earnings_yield_pct": 3.558718861209964,
       "roe_proxy_pct": 13.487544483985763,
-      "earnings_growth_1y_pct": 23.66469991352553,
-      "earnings_cagr_3y_pct": 10.359188473662151,
+      "earnings_growth_1y_pct": 23.664702145407745,
+      "earnings_cagr_3y_pct": 10.359189137577584,
+      "earnings_validation": {
+        "growth_1y_pct": 23.664702145407745,
+        "cagr_3y_pct": 10.359189137577584,
+        "status": "live",
+        "validation": [
+          {
+            "check": "current_index_level_crosscheck",
+            "difference_pct": 1.8047851879643417e-06,
+            "pass": true
+          },
+          {
+            "check": "1y_growth_sanity",
+            "pass": true
+          },
+          {
+            "check": "3y_cagr_sanity",
+            "pass": true
+          },
+          {
+            "check": "indexpe_5y_reference_available",
+            "reference_5y_cagr_pct": 17.48,
+            "pass": true
+          }
+        ],
+        "note": "Approximate index earnings = index level / P/E; historical P/E uses monthly medians. Cross-checked against Dhan/Yahoo and IndexPE where available."
+      },
       "trend": {
         "level": 21643.85,
         "dma50": 23029.76,
@@ -279,10 +345,10 @@
         "reported_pe_percentile": 27.0,
         "relative_pe_vs_nifty50": null,
         "relative_pe_median_vs_nifty50": null,
-        "pe_5y_percentile": 45.0,
-        "pb_5y_percentile": 31.666666666666668,
-        "percentile_basis": "5Y monthly medians from WealthTicker tables",
-        "dy_5y_expensiveness_percentile": 81.66666666666667,
+        "pe_5y_percentile_monthly": 44.067796610169495,
+        "pb_5y_percentile": 30.508474576271187,
+        "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
+        "dy_5y_expensiveness_percentile": 81.35593220338983,
         "pe_monthly_5y": [
           31.53,
           29.99,
@@ -471,6 +537,16 @@
         ],
         "as_of_text": "1 Oct 2026"
       },
+      "_indexpe": {
+        "source": "https://indexpe.in/nifty-midcap-150",
+        "status": "live",
+        "pe": 28.1,
+        "pe_5y_median": 29.81,
+        "pe_5y_percentile_daily": null,
+        "pe_daily_observations": null,
+        "earnings_cagr_5y_pct": 17.48,
+        "as_of_text": "1 Oct 2026"
+      },
       "equity_bond_spread_pp": -3.5812811387900356,
       "valuation_condition": "Broadly fair"
     },
@@ -480,16 +556,44 @@
       "pe": 34.05,
       "pb": 3.38,
       "dividend_yield": 0.62,
-      "pe_5y_percentile": 95.0,
-      "pb_5y_percentile": 30.0,
-      "div_yield_expensiveness_percentile": 96.66666666666667,
+      "pe_5y_percentile": 94.91525423728814,
+      "pe_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables; current observation excluded",
+      "pb_5y_percentile": 28.8135593220339,
+      "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
+      "div_yield_expensiveness_percentile": 96.61016949152543,
       "relative_pe_vs_large": 1.794939377965208,
-      "relative_pe_median": 1.2433596409209091,
+      "relative_pe_median": 1.2416475972540044,
       "relative_premium_5y_percentile": 100.0,
       "earnings_yield_pct": 2.9368575624082234,
       "roe_proxy_pct": 9.926578560939795,
-      "earnings_growth_1y_pct": -5.992172625296122,
-      "earnings_cagr_3y_pct": 1.1116791483234412,
+      "earnings_growth_1y_pct": -5.992176800826455,
+      "earnings_cagr_3y_pct": 1.111677651303089,
+      "earnings_validation": {
+        "growth_1y_pct": -5.992176800826455,
+        "cagr_3y_pct": 1.111677651303089,
+        "status": "live",
+        "validation": [
+          {
+            "check": "current_index_level_crosscheck",
+            "difference_pct": 4.441683887357328e-06,
+            "pass": true
+          },
+          {
+            "check": "1y_growth_sanity",
+            "pass": true
+          },
+          {
+            "check": "3y_cagr_sanity",
+            "pass": true
+          },
+          {
+            "check": "indexpe_5y_reference_available",
+            "reference_5y_cagr_pct": 9.74,
+            "pass": true
+          }
+        ],
+        "note": "Approximate index earnings = index level / P/E; historical P/E uses monthly medians. Cross-checked against Dhan/Yahoo and IndexPE where available."
+      },
       "trend": {
         "level": 17589.05,
         "dma50": 18197.4,
@@ -514,10 +618,10 @@
         "reported_pe_percentile": 56.0,
         "relative_pe_vs_nifty50": null,
         "relative_pe_median_vs_nifty50": null,
-        "pe_5y_percentile": 95.0,
-        "pb_5y_percentile": 30.0,
-        "percentile_basis": "5Y monthly medians from WealthTicker tables",
-        "dy_5y_expensiveness_percentile": 96.66666666666667,
+        "pe_5y_percentile_monthly": 94.91525423728814,
+        "pb_5y_percentile": 28.8135593220339,
+        "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
+        "dy_5y_expensiveness_percentile": 96.61016949152543,
         "pe_monthly_5y": [
           29.44,
           29.94,
@@ -706,6 +810,16 @@
         ],
         "as_of_text": "1 Oct 2026"
       },
+      "_indexpe": {
+        "source": "https://indexpe.in/nifty-smallcap-250",
+        "status": "live",
+        "pe": 34.05,
+        "pe_5y_median": 28.33,
+        "pe_5y_percentile_daily": null,
+        "pe_daily_observations": null,
+        "earnings_cagr_5y_pct": 9.74,
+        "as_of_text": "1 Oct 2026"
+      },
       "equity_bond_spread_pp": -4.203142437591776,
       "valuation_condition": "Above normal"
     }
@@ -746,110 +860,526 @@
     "latest_dii": 10041.84,
     "fii_5d": -38660.0,
     "dii_5d": 36293.47,
-    "fii_20d": -45856.56,
-    "dii_20d": 50873.14,
+    "fii_20d": null,
+    "dii_20d": null,
+    "fii_mtd": -9484.22,
+    "dii_mtd": 10041.84,
     "rows_available": 10,
+    "window_20d_complete": false,
+    "mtd_complete": true,
     "status": "live",
     "source": "https://groww.in/fii-dii-data",
-    "note": "Groww republishes NSE/BSE cash-market institutional activity. Informational only."
+    "note": "Groww republishes exchange cash-market institutional activity. 20D is blank unless 20 actual sessions are available."
   },
-  "external_consensus": [
-    {
-      "name": "Motilal Oswal MF",
-      "url": "https://www.motilaloswalmf.com/motilal-oswal-edge/articles",
-      "reliability": "High",
-      "status": "live",
+  "external_consensus": {
+    "summary": {
       "large": {
-        "stance": "Neutral/Selective",
-        "evidence": "Mutual Fund Articles | Motilal Oswal MF style breadcrumbs id breadcrumb Hear from our experts style out-expert-listing id Search-listing Article 9 min read October 01, 2026 Monthly Market Outlook October 2026 By Prateek Agrawal This time le"
+        "valuation_label": "Insufficient consensus",
+        "direction_label": "Insufficient consensus",
+        "valuation_counts": {
+          "Attractive": 0,
+          "Fair": 0,
+          "Mixed/Fair": 0,
+          "Expensive": 0,
+          "No explicit view": 3
+        },
+        "direction_counts": {
+          "Constructive": 1,
+          "Neutral/Selective": 0,
+          "Mixed": 0,
+          "Cautious": 1,
+          "No explicit view": 1
+        },
+        "current_sources": 3,
+        "stale_or_archive_sources": 3,
+        "total_sources": 10,
+        "valuation_directional_votes": 0,
+        "direction_directional_votes": 2,
+        "rule": "Only <=45-day explicit views vote. Silence does not vote. At least 3 directional votes are required; 65% agreement sets the directional label."
       },
       "mid": {
-        "stance": "No explicit view",
-        "evidence": ""
+        "valuation_label": "Insufficient consensus",
+        "direction_label": "Insufficient consensus",
+        "valuation_counts": {
+          "Attractive": 0,
+          "Fair": 0,
+          "Mixed/Fair": 0,
+          "Expensive": 0,
+          "No explicit view": 3
+        },
+        "direction_counts": {
+          "Constructive": 0,
+          "Neutral/Selective": 0,
+          "Mixed": 0,
+          "Cautious": 1,
+          "No explicit view": 2
+        },
+        "current_sources": 3,
+        "stale_or_archive_sources": 3,
+        "total_sources": 10,
+        "valuation_directional_votes": 0,
+        "direction_directional_votes": 1,
+        "rule": "Only <=45-day explicit views vote. Silence does not vote. At least 3 directional votes are required; 65% agreement sets the directional label."
       },
       "small": {
-        "stance": "No explicit view",
-        "evidence": ""
-      },
-      "note": "Rule-based classification of explicit cap-related wording; informational only."
+        "valuation_label": "Insufficient consensus",
+        "direction_label": "Insufficient consensus",
+        "valuation_counts": {
+          "Attractive": 0,
+          "Fair": 0,
+          "Mixed/Fair": 0,
+          "Expensive": 0,
+          "No explicit view": 3
+        },
+        "direction_counts": {
+          "Constructive": 0,
+          "Neutral/Selective": 0,
+          "Mixed": 0,
+          "Cautious": 1,
+          "No explicit view": 2
+        },
+        "current_sources": 3,
+        "stale_or_archive_sources": 3,
+        "total_sources": 10,
+        "valuation_directional_votes": 0,
+        "direction_directional_votes": 1,
+        "rule": "Only <=45-day explicit views vote. Silence does not vote. At least 3 directional votes are required; 65% agreement sets the directional label."
+      }
     },
-    {
-      "name": "Axis MF",
-      "url": "https://www.axismf.com/efactsheet/Aug-2026/Innerpage/Hybrid-outlook.html",
-      "reliability": "High",
-      "status": "live",
-      "large": {
-        "stance": "Neutral/Selective",
-        "evidence": "\u25ba Valuations have become more reasonable post-correction, especially in large caps and select cyclicals."
+    "sources": [
+      {
+        "name": "Franklin Templeton India",
+        "landing_url": "https://www.franklintempletonindia.com/static/factsheet/Innerpage/Equity-Market-Snap-Shot.html",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://www.franklintempletonindia.com/static/factsheet/Innerpage/Equity-Market-Snap-Shot.html",
+        "report_date": "2026-06-15",
+        "age_bucket": "archive",
+        "age_days": 109,
+        "large": {
+          "valuation": {
+            "view": "Fair",
+            "evidence": "Large-cap valuations remain anchored around long-term averages, with the Nifty trading at approximately 19.5x one-year forward earnings as of August 2026 monthend, against its 10-year average of around 19x."
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "Expensive",
+            "evidence": "However, the broader market continues to trade at a sizeable premium, with mid caps at nearly 30x and small caps at around 28x forward earnings."
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "Expensive",
+            "evidence": "However, the broader market continues to trade at a sizeable premium, with mid caps at nearly 30x and small caps at around 28x forward earnings."
+          },
+          "direction": {
+            "view": "Cautious",
+            "evidence": "Selective mid- and small-cap exposure may be built in a staggered manner"
+          }
+        }
       },
-      "mid": {
-        "stance": "Neutral/Selective",
-        "evidence": "The broader market outperformed, with mid-cap and small-cap indices gaining 2.1% and 3.1% respectively."
+      {
+        "name": "Axis MF",
+        "landing_url": "https://www.axismf.com/efactsheet/Aug-2026/Innerpage/Hybrid-outlook.html",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://www.axismf.com/efactsheet/Aug-2026/Innerpage/Hybrid-outlook.html",
+        "report_date": "2026-08-15",
+        "age_bucket": "stale",
+        "age_days": 48,
+        "large": {
+          "valuation": {
+            "view": "Mixed/Fair",
+            "evidence": "\u25ba Valuations have become more reasonable post-correction, especially in large caps and select cyclicals. pockets of the midand small-cap universe continue to trade at rich valuations despite recent corrections, large caps offer a relatively more balanced risk-reward profile, supported by reasonable valuations, stronger"
+          },
+          "direction": {
+            "view": "Constructive",
+            "evidence": "pockets of the midand small-cap universe continue to trade at rich valuations despite recent corrections, large caps offer a relatively more balanced risk-reward profile, supported by reasonable valuations, stronger earnings visibility and healthy balance sheets."
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "Mixed/Fair",
+            "evidence": "pockets of the midand small-cap universe continue to trade at rich valuations despite recent corrections, large caps offer a relatively more balanced risk-reward profile, supported by reasonable valuations, stronger earnings visibility and healthy balance sheets. pockets of the midand small-cap universe continue to tra"
+          },
+          "direction": {
+            "view": "Constructive",
+            "evidence": "pockets of the midand small-cap universe continue to trade at rich valuations despite recent corrections, large caps offer a relatively more balanced risk-reward profile, supported by reasonable valuations, stronger earnings visibility and healthy balance sheets."
+          }
+        }
       },
-      "small": {
-        "stance": "Positive/Constructive",
-        "evidence": "The broader market outperformed, with mid-cap and small-cap indices gaining 2.1% and 3.1% respectively."
+      {
+        "name": "Motilal Oswal MF",
+        "landing_url": "https://www.motilaloswalmf.com/motilal-oswal-edge/articles",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://www.motilaloswalmf.com/motilal-oswal-edge/articles/monthly-market-outlook-october-2026-by-prateek-agarwal",
+        "report_date": null,
+        "age_bucket": "undated",
+        "age_days": null,
+        "large": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        }
       },
-      "note": "Rule-based classification of explicit cap-related wording; informational only."
-    },
-    {
-      "name": "DSP NETRA",
-      "url": "https://www.dspim.com/dspnetra",
-      "reliability": "High",
-      "status": "live",
-      "large": {
-        "stance": "No explicit view",
-        "evidence": ""
+      {
+        "name": "DSP NETRA",
+        "landing_url": "https://www.dspim.com/dspnetra",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://www.dspim.com/latest-literature?search=Netra",
+        "report_date": "2026-07-16",
+        "age_bucket": "stale",
+        "age_days": 78,
+        "large": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        }
       },
-      "mid": {
-        "stance": "No explicit view",
-        "evidence": ""
+      {
+        "name": "SBI Mutual Fund",
+        "landing_url": "https://www.sbimf.com/learn-about-mutual-funds/nifty-midcap-150-investing-in-india%27s-emerging-growth-leaders-sbi-mutual-fund",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://www.sbimf.com/learn-about-mutual-funds/nifty-midcap-150-investing-in-india%27s-emerging-growth-leaders-sbi-mutual-fund",
+        "report_date": null,
+        "age_bucket": "undated",
+        "age_days": null,
+        "large": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        }
       },
-      "small": {
-        "stance": "No explicit view",
-        "evidence": ""
+      {
+        "name": "Aditya Birla Sun Life MF",
+        "landing_url": "https://mutualfund.adityabirlacapital.com/abslamc-knowledge-centre/monthly-outlook",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://mutualfund.adityabirlacapital.com/abslamc-knowledge-centre/articles/market-outlook-september-2026",
+        "report_date": "2026-09-18",
+        "age_bucket": "current",
+        "age_days": 14,
+        "large": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "Cautious",
+            "evidence": "Account Statement Check Fund Performance NAV Complete eKYC Portfolio Register for e-OTM Unclaimed Redemption Investment Performance Calculator Forms Market Updates Investing Insights Policy Updates Annual Reports Factsheets HELP ODR USEFUL LINKS CYBERCRIME AWARENESS FAQs Post a Query Contact Us Glossary Locate Us Custo"
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        }
       },
-      "note": "Rule-based classification of explicit cap-related wording; informational only."
-    },
-    {
-      "name": "HDFC MF",
-      "url": "https://www.hdfcfund.com/learn/macros-markets-more/market-review",
-      "reliability": "High",
-      "status": "unavailable",
-      "error": "403 Client Error: Forbidden for url: https://www.hdfcfund.com/learn/macros-markets-more/market-review"
-    },
-    {
-      "name": "PL Capital",
-      "url": "https://www.plindia.com/research/",
-      "reliability": "Medium-High",
-      "status": "live",
-      "large": {
-        "stance": "No explicit view",
-        "evidence": ""
+      {
+        "name": "ICICI Prudential MF",
+        "landing_url": "https://www.icicipruamc.com/blob/sebi-repo/Advertisements/2026/August/Filing%20date%2012-08-2026/Release%20date%2011-08-2026/Advertisements/Annexure%206%20-%20Mailer%20on%20Monthly%20Market%20Outlook.html",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://www.icicipruamc.com/blob/sebi-repo/Advertisements/2026/August/Filing%20date%2012-08-2026/Release%20date%2011-08-2026/Advertisements/Annexure%206%20-%20Mailer%20on%20Monthly%20Market%20Outlook.html",
+        "report_date": null,
+        "age_bucket": "undated",
+        "age_days": null,
+        "large": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        }
       },
-      "mid": {
-        "stance": "No explicit view",
-        "evidence": ""
+      {
+        "name": "PL Capital",
+        "landing_url": "https://www.plindia.com/research/",
+        "reliability": "Medium-High",
+        "status": "live",
+        "report_url": "https://www.plindia.com/pl-research/financial-services-sector-update-demand-resilient-through-deeper-market-penetration/",
+        "report_date": "2026-10-01",
+        "age_bucket": "current",
+        "age_days": 1,
+        "large": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        }
       },
-      "small": {
-        "stance": "Neutral/Selective",
-        "evidence": "Equity & Market Research Reports by Experts \u2013 PL Capital About Us Partner with Us Research Get in Touch Web Stories Blogs Share Market News Stocks Pages Blogs Research Reports India \u2013 US Trade Deal View Nfo Groww Small Cap Fund View stocks "
+      {
+        "name": "Kotak Mutual Fund",
+        "landing_url": "https://www.kotakmf.com/monthly-market-update",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://www.kotakmf.com/monthly-market-update",
+        "report_date": null,
+        "age_bucket": "undated",
+        "age_days": null,
+        "large": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "No explicit view",
+            "evidence": ""
+          }
+        }
       },
-      "note": "Rule-based classification of explicit cap-related wording; informational only."
+      {
+        "name": "Nippon India Mutual Fund",
+        "landing_url": "https://mf.nipponindiaim.com/knowledge-center/updates-insights/market-outlook",
+        "reliability": "High",
+        "status": "live",
+        "report_url": "https://mf.nipponindiaim.com/LearnAndInvest/MarketOutlook/September-2026/Equity-Market-Outlook.html",
+        "report_date": "2026-09-15",
+        "age_bucket": "current",
+        "age_days": 17,
+        "large": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "Constructive",
+            "evidence": "Accordingly Large Cap & Large Cap oriented diversified strategies along with hybrid funds might appear to be better placed on risk-reward basis"
+          }
+        },
+        "mid": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "Cautious",
+            "evidence": "Mid/Small cap allocation may be considered in a staggered manner through systematic investment with a long-term view."
+          }
+        },
+        "small": {
+          "valuation": {
+            "view": "No explicit view",
+            "evidence": ""
+          },
+          "direction": {
+            "view": "Cautious",
+            "evidence": "Mid/Small cap allocation may be considered in a staggered manner through systematic investment with a long-term view."
+          }
+        }
+      }
+    ],
+    "rules": {
+      "current_days": 45,
+      "stale_days": 90,
+      "minimum_directional_votes": 3,
+      "agreement_threshold_pct": 65,
+      "note": "Silence does not vote. Only explicit cap-level evaluative/preference wording from current documents is counted."
     }
-  ],
+  },
   "source_health": {
     "valuation_large": {
       "status": "live",
       "url": "https://wealthticker.in/nifty-pe-ratio/nifty-100"
     },
+    "pe_percentile_daily_large": {
+      "status": "live",
+      "url": "https://indexpe.in/nifty-100"
+    },
     "valuation_mid": {
       "status": "live",
       "url": "https://wealthticker.in/nifty-pe-ratio/nifty-midcap-150"
     },
+    "pe_percentile_daily_mid": {
+      "status": "partial",
+      "url": "https://indexpe.in/nifty-midcap-150"
+    },
     "valuation_small": {
       "status": "live",
       "url": "https://wealthticker.in/nifty-pe-ratio/nifty-smallcap-250"
+    },
+    "pe_percentile_daily_small": {
+      "status": "partial",
+      "url": "https://indexpe.in/nifty-smallcap-250"
     },
     "trend_large": {
       "status": "live",
@@ -884,15 +1414,18 @@
       "url": "https://groww.in/fii-dii-data"
     },
     "consensus": {
-      "status": "partial"
+      "status": "partial",
+      "current_documents": 3,
+      "total_sources": 10
     }
   },
   "sources": {
     "valuation": "https://wealthticker.in/nifty-pe-ratio",
+    "daily_pe_percentile": "https://indexpe.in/",
     "gsec": "https://www.rbi.org.in/Scripts/BS_NSDPDisplay.aspx?param=4",
     "trend": "https://dhan.co/indices/",
     "breadth": "https://in.tradingview.com/markets/indices/",
     "fii_dii": "https://groww.in/fii-dii-data"
   },
-  "disclaimer": "Descriptive market research only. The dashboard does not recommend, rank or predict investment outcomes. Market-context indicators do not alter the valuation condition."
+  "disclaimer": "Descriptive market research only. The dashboard does not recommend, rank or predict investment outcomes. Market-context indicators and external views do not alter the valuation condition."
 }
