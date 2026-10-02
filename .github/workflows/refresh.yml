@@ -33,7 +33,7 @@ jobs:
           python - <<'PY'
           import json
           d=json.load(open('data/latest.json'))
-          assert d.get('methodology_version')=='4.0'
+          assert d.get('methodology_version')=='4.1', f"Expected methodology 4.1, got {d.get('methodology_version')}"
           assert set(d.get('segments',{}))=={'large','mid','small'}
           print('Validated methodology',d['methodology_version'],'as of',d.get('as_of'))
           PY
