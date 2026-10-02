@@ -48,6 +48,19 @@
         "mid": null,
         "small": null
       }
+    },
+    {
+      "date": "2026-10-02",
+      "valuation": {
+        "large": "Below-normal valuation",
+        "mid": "Broadly fair",
+        "small": "Above normal"
+      },
+      "pe": {
+        "large": 18.97,
+        "mid": 28.1,
+        "small": 34.05
+      }
     }
   ]
 }
