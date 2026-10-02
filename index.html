@@ -22,23 +22,27 @@
 <section class="panel">
   <div class="section-head"><div><div class="eyebrow">CORE VALUATION</div><h2>Why each segment is reading that way</h2></div></div>
   <div class="table-wrap"><table><thead><tr><th>Segment</th><th>P/E</th><th>5Y P/E pct.*</th><th>P/B</th><th>5Y P/B pct.*</th><th>Rel. P/E vs Large</th><th>Rel. premium pct.</th><th>Earnings yield</th><th>10Y G-Sec</th><th>Eq.-bond spread</th><th>1Y earnings</th><th>3Y earnings CAGR</th><th>ROE proxy</th><th>Dividend yield</th></tr></thead><tbody id="coreTable"></tbody></table></div>
-  <p class="note">P/E and P/B percentiles are calculated from the last 60 monthly median observations (~5 years) from WealthTicker/NSE-derived history; lower means historically cheaper. This avoids mixing today's consolidated-earnings P/E with much older methodology. Relative premium percentile matters only for Mid/Small. Dividend yield is informational.</p>
+  <p class="note"><b>*Percentile basis:</b> P/E uses 5-year daily percentile data from IndexPE when explicitly available; otherwise it falls back to WealthTicker/NSE-derived monthly history. P/B and relative-premium percentiles use the last ~5 years of monthly medians with the current observation excluded. Lower means historically cheaper. Earnings, ROE and the equity-bond spread validate the valuation read but do not add hidden weights.</p>
 </section>
 
 <div class="divider"><span>MARKET CONTEXT — INFORMATIONAL ONLY</span></div>
 
 <section class="grid3">
   <article class="panel"><div class="section-head compact"><div><div class="eyebrow">TREND</div><h2>Index vs 50DMA / 200DMA</h2></div></div><div id="trendGrid" class="metric-list"></div><p class="note">Source: Dhan index technical pages. This does not change the valuation condition.</p></article>
-  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">BREADTH</div><h2>Stocks above 50DMA / 200DMA</h2></div></div><div id="breadthGrid" class="metric-list"></div><p class="note">Ready-made TradingView breadth is used to avoid fragile constituent scraping. Large uses Nifty 50 as a large-cap proxy; Mid uses TradingView Nifty MidCap; Small uses TradingView Nifty SmallCap. Nifty 500 remains the whole-market reference. Breadth is informational only.</p></article>
+  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">BREADTH</div><h2>Stocks above 50DMA / 200DMA</h2></div></div><div id="breadthGrid" class="metric-list"></div><p class="note">Ready-made TradingView breadth. <b>Large is a Nifty 50 proxy</b> because ready-made Nifty 100 breadth is not reliably published. Mid uses TradingView Nifty MidCap; Small uses TradingView Nifty SmallCap. Breadth is informational only.</p></article>
   <article class="panel"><div class="section-head compact"><div><div class="eyebrow">MARKET REFERENCE</div><h2>Nifty 50 & Nifty 500</h2></div></div><div id="referenceGrid" class="metric-list"></div><p class="note">Nifty 50 = mega-cap leadership. Nifty 500 = whole-market trend. Neither is an additional valuation bucket.</p></article>
 </section>
 
-<section class="panel"><div class="section-head compact"><div><div class="eyebrow">INSTITUTIONAL FLOWS</div><h2>FII / DII cash-market activity</h2></div></div><div id="flowGrid" class="flow-grid"></div><p class="note">Source: Groww public cash-market table, which republishes exchange institutional activity. Latest day plus rolling 5-day and 20-day net flows are informational only.</p></section>
+<section class="panel"><div class="section-head compact"><div><div class="eyebrow">INSTITUTIONAL FLOWS</div><h2>FII / DII cash-market activity</h2></div></div><div id="flowGrid" class="flow-grid"></div><p class="note">Source: Groww public cash-market table, which republishes exchange institutional activity. A 20-day total is shown only when 20 actual sessions are available; the dashboard will not label a shorter sample as 20D.</p></section>
 
 <section class="panel">
-  <div class="section-head"><div><div class="eyebrow">EXTERNAL CONSENSUS</div><h2>Five-house market-cap views</h2></div><span class="badge muted-badge">Rule-based extraction; informational</span></div>
-  <div class="table-wrap"><table class="consensus-table"><thead><tr><th>Source</th><th>Large</th><th>Mid</th><th>Small</th><th>Evidence / note</th><th>Reliability</th></tr></thead><tbody id="consensusTable"></tbody></table></div>
-  <p class="note">If a source does not state an explicit market-cap view, the dashboard shows “No explicit view” rather than inventing one. These views never alter the core valuation model.</p>
+  <div class="section-head"><div><div class="eyebrow">EXTERNAL CONSENSUS</div><h2>10-source cap direction & valuation view</h2></div><span class="badge muted-badge">Silence does not vote</span></div>
+  <div id="consensusCards" class="consensus-cards"></div>
+  <p class="note consensus-rule">Only reports ≤45 days old vote. 46–90 day views are shown as stale but excluded; older views are archive only. At least 3 explicit directional votes are required, and ≥65% agreement is needed for a Constructive/Cautious or Attractive/Expensive consensus. Past performance statements do not create a vote.</p>
+  <details class="source-details">
+    <summary>See the 10 underlying sources and evidence</summary>
+    <div class="table-wrap"><table class="consensus-table"><thead><tr><th>Source</th><th>Large</th><th>Mid</th><th>Small</th><th>Evidence / note</th><th>Reliability</th></tr></thead><tbody id="consensusTable"></tbody></table></div>
+  </details>
 </section>
 
 <section class="panel">
