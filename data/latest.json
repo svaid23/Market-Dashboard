@@ -1,8 +1,8 @@
 {
-  "methodology_version": "4.2",
-  "generated_at": "2026-10-02T17:11:57.233219+00:00",
+  "methodology_version": "4.3",
+  "generated_at": "2026-10-02T18:20:11.154876+00:00",
   "as_of": "2026-10-02",
-  "model_note": "Valuation condition is driven by historical P/E and P/B positioning plus relative P/E premium for Mid/Small. Equity-bond spread, earnings trend and ROE proxy validate the read. Technicals, breadth, flows and external consensus are informational only.",
+  "model_note": "Core valuation uses the same 5Y monthly P/E and P/B percentile methodology for Large, Mid and Small, plus relative P/E premium for Mid/Small. IndexPE daily P/E is validation-only. If live core P/E/P/B history is unavailable, no current valuation condition is issued. Equity-bond spread, earnings trend and ROE proxy validate the read; technicals, breadth, flows and external consensus are informational only.",
   "segments": {
     "large": {
       "label": "Large Cap",
@@ -11,7 +11,7 @@
       "pb": 2.84,
       "dividend_yield": 1.2,
       "pe_5y_percentile": 0.0,
-      "pe_percentile_basis": "5Y daily data from IndexPE",
+      "pe_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables; current observation excluded",
       "pb_5y_percentile": 0.0,
       "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
       "div_yield_expensiveness_percentile": 76.27118644067797,
@@ -275,6 +275,7 @@
         "as_of_text": "1 Oct 2026"
       },
       "equity_bond_spread_pp": -1.868518713758566,
+      "core_valuation_status": "live",
       "valuation_condition": "Below-normal valuation"
     },
     "mid": {
@@ -548,6 +549,7 @@
         "as_of_text": "1 Oct 2026"
       },
       "equity_bond_spread_pp": -3.5812811387900356,
+      "core_valuation_status": "live",
       "valuation_condition": "Broadly fair"
     },
     "small": {
@@ -821,6 +823,7 @@
         "as_of_text": "1 Oct 2026"
       },
       "equity_bond_spread_pp": -4.203142437591776,
+      "core_valuation_status": "live",
       "valuation_condition": "Above normal"
     }
   },
@@ -1357,71 +1360,86 @@
     }
   },
   "source_health": {
-    "valuation_large": {
+    "core_valuation_large": {
       "status": "live",
+      "role": "core",
       "url": "https://wealthticker.in/nifty-pe-ratio/nifty-100"
     },
-    "pe_percentile_daily_large": {
+    "pe_daily_crosscheck_large": {
       "status": "live",
+      "role": "validation",
       "url": "https://indexpe.in/nifty-100"
     },
-    "valuation_mid": {
+    "core_valuation_mid": {
       "status": "live",
+      "role": "core",
       "url": "https://wealthticker.in/nifty-pe-ratio/nifty-midcap-150"
     },
-    "pe_percentile_daily_mid": {
+    "pe_daily_crosscheck_mid": {
       "status": "partial",
+      "role": "validation",
       "url": "https://indexpe.in/nifty-midcap-150"
     },
-    "valuation_small": {
+    "core_valuation_small": {
       "status": "live",
+      "role": "core",
       "url": "https://wealthticker.in/nifty-pe-ratio/nifty-smallcap-250"
     },
-    "pe_percentile_daily_small": {
+    "pe_daily_crosscheck_small": {
       "status": "partial",
+      "role": "validation",
       "url": "https://indexpe.in/nifty-smallcap-250"
     },
     "trend_large": {
       "status": "live",
+      "role": "validation",
       "url": "https://dhan.co/indices/nifty-100-share-price/"
     },
     "trend_mid": {
       "status": "live",
+      "role": "validation",
       "url": "https://dhan.co/indices/nifty-midcap-150-share-price/"
     },
     "trend_small": {
       "status": "live",
+      "role": "validation",
       "url": "https://dhan.co/indices/nifty-smallcap-250-share-price/"
     },
     "breadth_market": {
       "status": "live",
+      "role": "context",
       "url": "https://in.tradingview.com/markets/indices/"
     },
     "gsec": {
       "status": "live",
+      "role": "validation",
       "url": "https://www.rbi.org.in/Scripts/BS_NSDPDisplay.aspx?param=4"
     },
     "reference_nifty50": {
       "status": "live",
+      "role": "context",
       "url": "https://dhan.co/indices/nifty-50-share-price/"
     },
     "reference_nifty500": {
       "status": "live",
+      "role": "context",
       "url": "https://dhan.co/indices/nifty-500-share-price/"
     },
     "fii_dii": {
       "status": "live",
+      "role": "context",
       "url": "https://groww.in/fii-dii-data"
     },
     "consensus": {
       "status": "partial",
+      "role": "context",
       "current_documents": 3,
       "total_sources": 10
     }
   },
   "sources": {
     "valuation": "https://wealthticker.in/nifty-pe-ratio",
-    "daily_pe_percentile": "https://indexpe.in/",
+    "pe_daily_crosscheck": "https://indexpe.in/",
     "gsec": "https://www.rbi.org.in/Scripts/BS_NSDPDisplay.aspx?param=4",
     "trend": "https://dhan.co/indices/",
     "breadth": "https://in.tradingview.com/markets/indices/",
