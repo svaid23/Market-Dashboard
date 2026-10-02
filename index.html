@@ -3,111 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Automated Large, Mid and Small cap evidence dashboard for Indian equity allocation research.">
-  <title>India Market Cap Evidence Dashboard</title>
+  <meta name="description" content="Indian large, mid and small cap valuation dashboard with separate market context.">
+  <title>India Market Cap Valuation Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="page-shell">
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">INDIA EQUITY ALLOCATION</div>
-        <h1>Large / Mid / Small Cap Dashboard</h1>
-        <p class="subtitle">Opportunity and risk separated. No future EPS or exit P/E forecast required.</p>
-      </div>
-      <div class="refresh-box">
-        <div class="status-row"><span id="statusDot" class="status-dot"></span><span id="sourceStatus">Loading data...</span></div>
-        <div class="refresh-meta">Data as of <strong id="asOf">--</strong></div>
-        <div class="refresh-meta">Auto refresh: 1st and 16th, 17:45 IST</div>
-        <div class="refresh-meta">Methodology <strong id="methodVersion">--</strong></div>
-      </div>
-    </header>
+<div class="shell">
+<header class="topbar">
+  <div><div class="eyebrow">INDIA EQUITY ALLOCATION</div><h1>Large / Mid / Small Cap Valuation Dashboard</h1><p class="subtitle">Valuation first. Market context second. Technicals, flows and external views never change the valuation conclusion.</p></div>
+  <div class="statusbox"><div><span id="statusDot" class="dot"></span><strong id="statusText">Loading…</strong></div><span>Data as of <b id="asOf">--</b></span><span>Methodology <b id="version">--</b></span><span>Scheduled refresh: 1st & 16th</span></div>
+</header>
+<main>
+<section>
+  <div class="section-head"><div><div class="eyebrow">CORE MODEL</div><h2>Valuation condition</h2></div><span class="badge">Only this section drives the valuation read</span></div>
+  <div id="cards" class="cards"></div>
+</section>
 
-    <main>
-      <section class="hero-grid" id="cards"></section>
+<section class="panel">
+  <div class="section-head"><div><div class="eyebrow">CORE VALUATION</div><h2>Why each segment is reading that way</h2></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Segment</th><th>P/E</th><th>5Y P/E pct.</th><th>P/B</th><th>5Y P/B pct.</th><th>Rel. P/E vs Large</th><th>Rel. premium pct.</th><th>Earnings yield</th><th>10Y G-Sec</th><th>Eq.-bond spread</th><th>1Y earnings</th><th>3Y earnings CAGR</th><th>ROE proxy</th><th>Dividend yield</th></tr></thead><tbody id="coreTable"></tbody></table></div>
+  <p class="note">Percentiles use each segment's own recent history. Lower P/E/P/B percentiles indicate cheaper historical positioning. Relative premium percentile matters only for Mid/Small. Dividend yield is informational, not a core decision variable.</p>
+</section>
 
-      <section class="panel insight-panel">
-        <div class="panel-head"><div><div class="eyebrow">CURRENT READ</div><h2>What is driving the setup?</h2></div><span class="pill">Evidence framework, not buy/sell</span></div>
-        <div id="insightText" class="insight-text"></div>
-      </section>
+<div class="divider"><span>MARKET CONTEXT — INFORMATIONAL ONLY</span></div>
 
-      <section class="three-col diagnostics">
-        <article class="panel">
-          <div class="panel-head compact"><div><div class="eyebrow">VALUATION</div><h2>Price paid vs history</h2></div></div>
-          <div id="valuationMatrix" class="metric-matrix"></div>
-          <p class="chart-note">Current P/E is compared with each segment's own 5-year median. The historical anchor is slow-moving and can safely use the last verified value if its source is temporarily unavailable.</p>
-        </article>
-        <article class="panel">
-          <div class="panel-head compact"><div><div class="eyebrow">PROFIT PULSE</div><h2>What companies are reporting now</h2></div></div>
-          <div id="earningsMatrix" class="metric-matrix"></div>
-          <p class="chart-note">Market-cap-weighted latest-quarter YoY profit growth is winsorized to reduce tiny-base distortions. Profit breadth shows how much of the segment is participating.</p>
-        </article>
-        <article class="panel">
-          <div class="panel-head compact"><div><div class="eyebrow">BREADTH</div><h2>Participation under the index</h2></div></div>
-          <div id="breadthMatrix" class="metric-matrix"></div>
-          <p class="chart-note">% of covered constituents above their 50-day and 200-day moving averages. Breadth is optional: if Yahoo is unavailable, the core dashboard still refreshes.</p>
-        </article>
-      </section>
+<section class="grid3">
+  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">TREND</div><h2>Index vs 50DMA / 200DMA</h2></div></div><div id="trendGrid" class="metric-list"></div><p class="note">Source: Dhan index technical pages. This does not change the valuation condition.</p></article>
+  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">BREADTH</div><h2>Stocks above 50DMA / 200DMA</h2></div></div><div id="breadthGrid" class="metric-list"></div><p class="note">Exact L/M/S breadth is counted from public Dhan constituent tables. Coverage is shown; low coverage is flagged.</p></article>
+  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">MARKET REFERENCE</div><h2>Nifty 50 & Nifty 500</h2></div></div><div id="referenceGrid" class="metric-list"></div><p class="note">Nifty 50 = mega-cap leadership. Nifty 500 = whole-market trend. Neither is an additional valuation bucket.</p></article>
+</section>
 
-      <section class="three-col diagnostics">
-        <article class="panel">
-          <div class="panel-head compact"><div><div class="eyebrow">QUALITY</div><h2>Earnings yield & ROE proxy</h2></div></div>
-          <div id="qualityMatrix" class="metric-matrix"></div>
-          <p class="chart-note">Implied ROE proxy = P/B ÷ P/E. Useful for broad comparison, not a substitute for company-level ROE analysis.</p>
-        </article>
-        <article class="panel">
-          <div class="panel-head compact"><div><div class="eyebrow">RELATIVE VALUE</div><h2>Premium vs Large Cap</h2></div></div>
-          <div id="premiumMatrix" class="metric-matrix"></div>
-          <p class="chart-note">Current Mid/Small P/E premium is compared with the premium implied by each segment's own 5-year median P/E. This avoids forecasting a future multiple.</p>
-        </article>
-        <article class="panel">
-          <div class="panel-head compact"><div><div class="eyebrow">RISK</div><h2>Volatility, beta & drawdown</h2></div></div>
-          <div id="riskMatrix" class="metric-matrix"></div>
-          <p class="chart-note">Volatility and beta are slow-moving risk anchors; drawdown from the 52-week high comes from the live index page.</p>
-        </article>
-      </section>
+<section class="grid2">
+  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">INSTITUTIONAL FLOWS</div><h2>FII / DII cash-market activity</h2></div></div><div id="flowGrid" class="flow-grid"></div><p class="note">Primary reference is NSE combined provisional FII/FPI & DII cash-market activity. Dashboard may use a public republisher when NSE blocks automated access.</p></article>
+  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">MUTUAL-FUND FLOWS</div><h2>Cap-specific AMFI flows</h2></div></div><div id="amfiGrid" class="metric-list"></div><p class="note">Monthly category flows are context only. AMFI is the source; the latest published month can lag the market dashboard date.</p></article>
+</section>
 
-      <section class="two-col score-panels">
-        <article class="panel"><div class="panel-head compact"><div><div class="eyebrow">OPPORTUNITY</div><h2>Opportunity score /100</h2></div></div><div id="opportunityBars" class="score-bars"></div><p class="chart-note">Higher = more supportive observable evidence across valuation, current profits, breadth, quality and momentum.</p></article>
-        <article class="panel"><div class="panel-head compact"><div><div class="eyebrow">RISK</div><h2>Risk score /100</h2></div></div><div id="riskBars" class="score-bars"></div><p class="chart-note">Higher = more valuation, volatility, beta, breadth or profit risk. It is not a probability of loss.</p></article>
-      </section>
+<section class="panel">
+  <div class="section-head"><div><div class="eyebrow">EXTERNAL CONSENSUS</div><h2>Five-house market-cap views</h2></div><span class="badge muted-badge">Rule-based extraction; informational</span></div>
+  <div class="table-wrap"><table class="consensus-table"><thead><tr><th>Source</th><th>Large</th><th>Mid</th><th>Small</th><th>Evidence / note</th><th>Reliability</th></tr></thead><tbody id="consensusTable"></tbody></table></div>
+  <p class="note">If a source does not state an explicit market-cap view, the dashboard shows “No explicit view” rather than inventing one. These views never alter the core valuation model.</p>
+</section>
 
-      <section class="panel table-panel">
-        <div class="panel-head"><div><div class="eyebrow">FULL SCORECARD</div><h2>Evidence in one view</h2></div><button id="methodBtn" class="text-btn" type="button">Methodology & weights</button></div>
-        <div class="table-wrap"><table><thead><tr>
-          <th>Segment</th><th>Opportunity</th><th>Risk</th><th>P/E</th><th>Vs 5Y median</th><th>P/B</th><th>Premium vs Large</th><th>Excess vs normal</th><th>Qtr Profit YoY</th><th>Positive-profit mcap</th><th>&gt;200DMA</th><th>1Y Vol.</th><th>Beta</th>
-        </tr></thead><tbody id="scoreTable"></tbody></table></div>
-      </section>
-
-      <section class="two-col history-panels">
-        <article class="panel history-panel"><div class="panel-head compact"><div><div class="eyebrow">TREND</div><h2>Opportunity score history</h2></div></div><div id="opportunityHistory" class="history-chart"></div></article>
-        <article class="panel history-panel"><div class="panel-head compact"><div><div class="eyebrow">TREND</div><h2>Risk score history</h2></div></div><div id="riskHistory" class="history-chart"></div></article>
-      </section>
-
-      <section id="methodology" class="panel methodology hidden">
-        <div class="panel-head compact"><div><div class="eyebrow">METHODOLOGY V3.0</div><h2>How the framework works</h2></div></div>
-        <div class="method-columns"><div><h3>Opportunity score</h3><div id="opportunityWeights" class="weight-list"></div></div><div><h3>Risk score</h3><div id="riskWeights" class="weight-list"></div></div></div>
-        <div class="method-notes">
-          <p><strong>Architecture:</strong> v3 deliberately uses ordinary public HTML pages, not undocumented/private chart APIs. Screener is the primary live source; IndexPE supplies slow-moving historical/risk anchors; Yahoo is optional for constituent breadth.</p>
-          <p><strong>Valuation:</strong> current live P/E versus each segment's own 5-year median. If IndexPE is temporarily unavailable, the last verified median is retained rather than blocking the whole dashboard.</p>
-          <p><strong>Relative valuation:</strong> Mid/Small current P/E premium versus Nifty 50 compared with the premium implied by their respective 5-year median P/Es.</p>
-          <p><strong>Profit pulse:</strong> market-cap-weighted latest-quarter YoY constituent profit growth plus the share of covered market cap with positive profit growth. Extreme growth rates are capped before weighting to reduce base effects.</p>
-          <p><strong>Breadth:</strong> constituent participation above 50DMA and 200DMA. Missing breadth does not stop valuation/profit/quality scores from refreshing; weights reallocate across available evidence.</p>
-          <p><strong>Quality:</strong> index-level implied ROE proxy (P/B ÷ P/E).</p>
-          <p><strong>Momentum:</strong> 1-year Mid/Small price performance relative to Large Cap. Large is the neutral benchmark.</p>
-          <p><strong>Risk:</strong> valuation stretch, excess relative premium, realised volatility, beta, weak breadth and weak profit evidence are scored separately.</p>
-          <p><strong>Source failures:</strong> a source failure is labelled live / partial / reference / cached in Data Health. The site preserves last-good values rather than silently replacing them with blanks.</p>
-        </div>
-      </section>
-
-      <section class="panel source-panel"><div class="panel-head compact"><div><div class="eyebrow">DATA HEALTH</div><h2>Source & automation status</h2></div></div><div id="sourceDetails" class="source-details"></div></section>
-    </main>
-
-    <footer>
-      <p id="disclaimer"></p>
-      <p>Built for periodic allocation research. The dashboard deliberately avoids forecasting future index EPS or future P/E multiples. V3 uses public HTML sources only for core data; optional breadth failure cannot break the dashboard.</p>
-    </footer>
-  </div>
-  <script src="app.js"></script>
+<section class="panel">
+  <div class="section-head"><div><div class="eyebrow">DATA HEALTH</div><h2>Source status</h2></div></div><div id="healthGrid" class="health-grid"></div>
+</section>
+</main>
+<footer><p id="disclaimer"></p><p>Core indices: Nifty 100 (Large), Nifty Midcap 150 (Mid), Nifty Smallcap 250 (Small). Nifty 50 and Nifty 500 are context-only reference indices.</p></footer>
+</div>
+<script src="app.js"></script>
 </body>
 </html>
