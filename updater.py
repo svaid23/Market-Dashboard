@@ -53,6 +53,9 @@ REFERENCE = {
     'nifty500': {'name':'Nifty 500','dhan':'https://dhan.co/indices/nifty-500-share-price/'},
 }
 
+TRADINGVIEW_BREADTH_URL = 'https://in.tradingview.com/markets/indices/'
+GROWW_FII_DII_URL = 'https://groww.in/fii-dii-data'
+
 CONSENSUS_SOURCES = [
     {
         'name':'Motilal Oswal MF',
@@ -197,6 +200,7 @@ def parse_wealth(url):
         'relative_pe_vs_nifty50':relative,'relative_pe_median_vs_nifty50':relative_median,
         'pe_5y_percentile':percentile_rank(pe5,pe),
         'pb_5y_percentile':percentile_rank(pb5,pb),
+        'percentile_basis':'5Y monthly medians from WealthTicker tables',
         'dy_5y_expensiveness_percentile':percentile_rank(dy5,dy,invert=True),
         'pe_monthly_5y':pe5,'pb_monthly_5y':pb5,'dy_monthly_5y':dy5,
         'as_of_text':asof,
@@ -271,6 +275,40 @@ def calc_breadth(gainers_url, losers_url, expected=None):
     return out
 
 
+def fetch_tradingview_breadth():
+    """Ready-made breadth from TradingView India. Informational only.
+    Returns benchmark/proxy breadth so we do not scrape hundreds of constituents.
+    """
+    html=get(TRADINGVIEW_BREADTH_URL)
+    text=' '.join(BeautifulSoup(html,'html.parser').stripped_strings)
+    specs={
+        'large':('NIFTY', 'Nifty 50'),
+        'mid':('CNXMIDCAP', 'Nifty MidCap'),
+        'small':('CNXSMALLCAP', 'Nifty SmallCap'),
+        'nifty50':('NIFTY', 'Nifty 50'),
+        'nifty500':('CNX500', 'Nifty 500'),
+    }
+    out={}
+    for key,(sym,name) in specs.items():
+        # TradingView row order: symbol/name, regime, advancing, declining, net, >50d, >200d ...
+        pat=rf'{re.escape(sym)}\s*{re.escape(name)}.*?(\d{{1,3}})%\s+(\d{{1,3}})%'
+        m=re.search(pat,text,re.I)
+        if not m:
+            # fallback around just the human name
+            m=re.search(rf'{re.escape(name)}.*?(\d{{1,3}})%\s+(\d{{1,3}})%',text,re.I)
+        if m:
+            out[key]={
+                'above_50dma_pct':safe_float(m.group(1)),
+                'above_200dma_pct':safe_float(m.group(2)),
+                'status':'live',
+                'proxy_index':name,
+                'source':TRADINGVIEW_BREADTH_URL,
+            }
+        else:
+            out[key]={'status':'unavailable','proxy_index':name,'source':TRADINGVIEW_BREADTH_URL}
+    return out
+
+
 def fetch_rbi_gsec():
     urls=[
         'https://www.rbi.org.in/Scripts/BS_NSDPDisplay.aspx?param=4',
@@ -329,45 +367,60 @@ def earnings_trend(segment, wealth):
 
 
 def fetch_fii_dii():
-    # Informational only. Prefer a simple public page that republishes NSE provisional data.
-    url='https://www.ansaar.in/equities/fii-dii-data'
+    """Public republisher of NSE cash-market FII/DII data. Informational only.
+    Groww exposes a stable daily table; Upstox/Trendlyne can be checked manually if this fails.
+    """
+    url=GROWW_FII_DII_URL
     try:
-        html=get(url); tables=[]
         import pandas as pd
+        html=get(url)
         tables=pd.read_html(io.StringIO(html))
-        target=None
-        for df in tables:
-            cols=' '.join(str(c).lower() for c in df.columns)
-            if 'fii' in cols and 'dii' in cols and len(df)>=5:
-                target=df; break
         rows=[]
-        if target is not None:
-            for _,r in target.head(30).iterrows():
+        for df in tables:
+            if len(df)<1:
+                continue
+            # Flatten possible multi-index headers
+            cols=[]
+            for c in df.columns:
+                if isinstance(c,tuple):
+                    cols.append(' '.join(str(x) for x in c if str(x)!='nan').lower())
+                else:
+                    cols.append(str(c).lower())
+            if not any('fii' in c for c in cols) or not any('dii' in c for c in cols):
+                continue
+            for _,r in df.head(35).iterrows():
                 vals=list(r.values)
-                text=' | '.join(str(x) for x in vals)
-                nums=[safe_float(x) for x in re.findall(r'[+−-]?[₹]?\s*[\d,]+(?:\.\d+)?',text)]
-                # Common row order has bought/sold/net/dii net. Take signed values if possible from textual cells.
-                signed=[]
-                for x in vals:
-                    sx=str(x).replace('−','-')
-                    n=safe_float(sx)
-                    if n is not None: signed.append(n)
-                # Robust fallback: extract cells containing + or - for net columns.
-                netcells=[]
-                for x in vals:
-                    sx=str(x).replace('−','-').strip()
-                    if sx.startswith(('+','-')):
-                        n=safe_float(sx)
-                        if n is not None: netcells.append(n)
-                if len(netcells)>=2:
-                    rows.append({'fii_net':netcells[0],'dii_net':netcells[-1]})
+                date_txt=str(vals[0])
+                if not re.search(r'\d{1,2}[- /][A-Za-z0-9]{2,9}[- /]\d{4}',date_txt):
+                    continue
+                nums=[safe_float(x) for x in vals[1:]]
+                nums=[x for x in nums if x is not None]
+                # Cash table is usually buy/sell/net for FII then buy/sell/net for DII.
+                if len(nums)>=6:
+                    rows.append({'date':date_txt,'fii_net':nums[2],'dii_net':nums[5]})
+            if rows:
+                break
+        if not rows:
+            # robust text fallback for the latest day
+            text=' '.join(BeautifulSoup(html,'html.parser').stripped_strings)
+            m=re.search(r'Net FII Activity.*?([+−-]?[₹]?\s*[\d,]+(?:\.\d+)?).*?Net DII Activity.*?([+−-]?[₹]?\s*[\d,]+(?:\.\d+)?)',text,re.I)
+            if m:
+                rows=[{'date':'latest','fii_net':safe_float(m.group(1)),'dii_net':safe_float(m.group(2))}]
         if rows:
-            fii=[r['fii_net'] for r in rows]; dii=[r['dii_net'] for r in rows]
-            def s(n,arr): return sum(arr[:min(n,len(arr))])
-            return {'latest_fii':fii[0],'latest_dii':dii[0],'fii_5d':s(5,fii),'dii_5d':s(5,dii),'fii_20d':s(20,fii),'dii_20d':s(20,dii),'status':'live','source':url,'note':'Republished from NSE provisional combined cash-market data.'}
-    except Exception:
-        pass
-    return {'status':'unavailable','source':'https://www.nseindia.com/reports/fii-dii'}
+            fii=[r['fii_net'] for r in rows if r.get('fii_net') is not None]
+            dii=[r['dii_net'] for r in rows if r.get('dii_net') is not None]
+            def ss(arr,n): return sum(arr[:min(n,len(arr))]) if arr else None
+            return {
+                'latest_fii':fii[0] if fii else None,'latest_dii':dii[0] if dii else None,
+                'fii_5d':ss(fii,5),'dii_5d':ss(dii,5),
+                'fii_20d':ss(fii,20),'dii_20d':ss(dii,20),
+                'rows_available':min(len(fii),len(dii)),
+                'status':'live','source':url,
+                'note':'Groww republishes NSE/BSE cash-market institutional activity. Informational only.'
+            }
+    except Exception as e:
+        return {'status':'unavailable','source':url,'error':str(e)[:180]}
+    return {'status':'unavailable','source':url}
 
 
 def fetch_amfi_flows():
@@ -485,15 +538,15 @@ def main():
 
         try: trend=parse_dhan_index(cfg['dhan_index_url']); source_health[f'trend_{key}']={'status':'live','url':cfg['dhan_index_url']}
         except Exception as e: trend={}; source_health[f'trend_{key}']={'status':'unavailable','url':cfg['dhan_index_url'],'error':str(e)[:180]}
-        try: breadth=calc_breadth(cfg['dhan_gainers'],cfg['dhan_losers'], {'large':100,'mid':150,'small':250}[key]); source_health[f'breadth_{key}']={'status':breadth.get('status'),'url':cfg['dhan_gainers']}
-        except Exception as e: breadth={'status':'unavailable'}; source_health[f'breadth_{key}']={'status':'unavailable','error':str(e)[:180]}
+        # Breadth is added after all segments from TradingView ready-made benchmark breadth.
+        breadth={'status':'pending'}
         earn=earnings_trend(cfg,w)
         roe=(w.get('pb')/w.get('pe')*100) if w.get('pb') and w.get('pe') else None
         earnings_yield=(100/w.get('pe')) if w.get('pe') else None
         segment_data[key]={
             'label':cfg['label'],'index':cfg['index'],
             'pe':w.get('pe'),'pb':w.get('pb'),'dividend_yield':w.get('dividend_yield'),
-            'pe_5y_percentile':w.get('pe_5y_percentile') or w.get('reported_pe_percentile'),
+            'pe_5y_percentile':w.get('pe_5y_percentile'),
             'pb_5y_percentile':w.get('pb_5y_percentile'),
             'div_yield_expensiveness_percentile':w.get('dy_5y_expensiveness_percentile'),
             'relative_pe_vs_large':rel,'relative_pe_median':rel_med,'relative_premium_5y_percentile':premium_pct,
@@ -502,6 +555,19 @@ def main():
             'trend':trend,'breadth':breadth,
             '_wealth':w,
         }
+
+    # Ready-made breadth. Large/Mid/Small use TradingView market-cap benchmark proxies;
+    # Nifty 500 is the whole-market breadth reference. This is context only.
+    try:
+        tvb=fetch_tradingview_breadth()
+    except Exception as e:
+        tvb={}; source_health['breadth_market']={'status':'unavailable','url':TRADINGVIEW_BREADTH_URL,'error':str(e)[:180]}
+    else:
+        live_count=sum(1 for x in tvb.values() if x.get('status')=='live')
+        source_health['breadth_market']={'status':'live' if live_count>=3 else 'partial','url':TRADINGVIEW_BREADTH_URL}
+    for key in SEGMENTS:
+        b=tvb.get(key,{'status':'unavailable'})
+        segment_data[key]['breadth']=b
 
     gsec=fetch_rbi_gsec(); source_health['gsec']={'status':gsec['status'],'url':gsec['source']}
     for key,s in segment_data.items():
@@ -512,15 +578,18 @@ def main():
     for key,cfg in REFERENCE.items():
         try: refs[key]=parse_dhan_index(cfg['dhan']); source_health[f'reference_{key}']={'status':'live','url':cfg['dhan']}
         except Exception as e: refs[key]={}; source_health[f'reference_{key}']={'status':'unavailable','url':cfg['dhan'],'error':str(e)[:180]}
+        tb=tvb.get(key,{}) if 'tvb' in locals() else {}
+        if tb.get('above_50dma_pct') is not None:
+            refs[key]['breadth_50dma_pct']=tb.get('above_50dma_pct')
+            refs[key]['breadth_200dma_pct']=tb.get('above_200dma_pct')
 
     fii=fetch_fii_dii(); source_health['fii_dii']={'status':fii.get('status'),'url':fii.get('source')}
-    amfi=fetch_amfi_flows(); source_health['amfi']={'status':amfi.get('status'),'url':amfi.get('source')}
     consensus=fetch_consensus()
     source_health['consensus']={'status':'partial' if any(x['status']=='live' for x in consensus) else 'unavailable'}
 
     now=datetime.now(timezone.utc).isoformat()
     out={
-        'methodology_version':'4.0',
+        'methodology_version':'4.1',
         'generated_at':now,
         'as_of':datetime.now(timezone.utc).date().isoformat(),
         'model_note':'Core valuation conclusion uses P/E percentile, P/B percentile, relative valuation premium, equity-bond spread, earnings trend and ROE proxy. Technicals, breadth, flows and external consensus are informational only.',
@@ -528,15 +597,14 @@ def main():
         'gsec_10y':gsec,
         'references':refs,
         'fii_dii':fii,
-        'amfi_flows':amfi,
-        'external_consensus':consensus,
+                'external_consensus':consensus,
         'source_health':source_health,
         'sources':{
             'valuation':'https://wealthticker.in/nifty-pe-ratio',
             'gsec':'https://www.rbi.org.in/Scripts/BS_NSDPDisplay.aspx?param=4',
-            'trend_breadth':'https://dhan.co/indices/',
-            'fii_dii_official':'https://www.nseindia.com/reports/fii-dii',
-            'amfi':'https://www.amfiindia.com/research-information/amfi-monthly',
+            'trend':'https://dhan.co/indices/',
+            'breadth':'https://in.tradingview.com/markets/indices/',
+            'fii_dii':'https://groww.in/fii-dii-data',
         },
         'disclaimer':'Descriptive market research only. The dashboard does not recommend, rank or predict investment outcomes. Market-context indicators do not alter the valuation condition.'
     }
@@ -550,7 +618,7 @@ def main():
     snaps=[x for x in hist.get('snapshots',[]) if x.get('date')!=snap['date']]
     snaps.append(snap); snaps=snaps[-120:]
     HISTORY.write_text(json.dumps({'snapshots':snaps},indent=2),encoding='utf-8')
-    print(f"Refresh complete: methodology 4.0; {len([x for x in source_health.values() if x.get('status')=='live'])} live sources")
+    print(f"Refresh complete: methodology 4.1; {len([x for x in source_health.values() if x.get('status')=='live'])} live sources")
 
 if __name__=='__main__':
     main()

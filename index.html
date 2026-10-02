@@ -21,22 +21,19 @@
 
 <section class="panel">
   <div class="section-head"><div><div class="eyebrow">CORE VALUATION</div><h2>Why each segment is reading that way</h2></div></div>
-  <div class="table-wrap"><table><thead><tr><th>Segment</th><th>P/E</th><th>5Y P/E pct.</th><th>P/B</th><th>5Y P/B pct.</th><th>Rel. P/E vs Large</th><th>Rel. premium pct.</th><th>Earnings yield</th><th>10Y G-Sec</th><th>Eq.-bond spread</th><th>1Y earnings</th><th>3Y earnings CAGR</th><th>ROE proxy</th><th>Dividend yield</th></tr></thead><tbody id="coreTable"></tbody></table></div>
-  <p class="note">Percentiles use each segment's own recent history. Lower P/E/P/B percentiles indicate cheaper historical positioning. Relative premium percentile matters only for Mid/Small. Dividend yield is informational, not a core decision variable.</p>
+  <div class="table-wrap"><table><thead><tr><th>Segment</th><th>P/E</th><th>5Y P/E pct.*</th><th>P/B</th><th>5Y P/B pct.*</th><th>Rel. P/E vs Large</th><th>Rel. premium pct.</th><th>Earnings yield</th><th>10Y G-Sec</th><th>Eq.-bond spread</th><th>1Y earnings</th><th>3Y earnings CAGR</th><th>ROE proxy</th><th>Dividend yield</th></tr></thead><tbody id="coreTable"></tbody></table></div>
+  <p class="note">P/E and P/B percentiles are calculated from the last 60 monthly median observations (~5 years) from WealthTicker/NSE-derived history; lower means historically cheaper. This avoids mixing today's consolidated-earnings P/E with much older methodology. Relative premium percentile matters only for Mid/Small. Dividend yield is informational.</p>
 </section>
 
 <div class="divider"><span>MARKET CONTEXT — INFORMATIONAL ONLY</span></div>
 
 <section class="grid3">
   <article class="panel"><div class="section-head compact"><div><div class="eyebrow">TREND</div><h2>Index vs 50DMA / 200DMA</h2></div></div><div id="trendGrid" class="metric-list"></div><p class="note">Source: Dhan index technical pages. This does not change the valuation condition.</p></article>
-  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">BREADTH</div><h2>Stocks above 50DMA / 200DMA</h2></div></div><div id="breadthGrid" class="metric-list"></div><p class="note">Exact L/M/S breadth is counted from public Dhan constituent tables. Coverage is shown; low coverage is flagged.</p></article>
+  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">BREADTH</div><h2>Stocks above 50DMA / 200DMA</h2></div></div><div id="breadthGrid" class="metric-list"></div><p class="note">Ready-made TradingView breadth is used to avoid fragile constituent scraping. Large uses Nifty 50 as a large-cap proxy; Mid uses TradingView Nifty MidCap; Small uses TradingView Nifty SmallCap. Nifty 500 remains the whole-market reference. Breadth is informational only.</p></article>
   <article class="panel"><div class="section-head compact"><div><div class="eyebrow">MARKET REFERENCE</div><h2>Nifty 50 & Nifty 500</h2></div></div><div id="referenceGrid" class="metric-list"></div><p class="note">Nifty 50 = mega-cap leadership. Nifty 500 = whole-market trend. Neither is an additional valuation bucket.</p></article>
 </section>
 
-<section class="grid2">
-  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">INSTITUTIONAL FLOWS</div><h2>FII / DII cash-market activity</h2></div></div><div id="flowGrid" class="flow-grid"></div><p class="note">Primary reference is NSE combined provisional FII/FPI & DII cash-market activity. Dashboard may use a public republisher when NSE blocks automated access.</p></article>
-  <article class="panel"><div class="section-head compact"><div><div class="eyebrow">MUTUAL-FUND FLOWS</div><h2>Cap-specific AMFI flows</h2></div></div><div id="amfiGrid" class="metric-list"></div><p class="note">Monthly category flows are context only. AMFI is the source; the latest published month can lag the market dashboard date.</p></article>
-</section>
+<section class="panel"><div class="section-head compact"><div><div class="eyebrow">INSTITUTIONAL FLOWS</div><h2>FII / DII cash-market activity</h2></div></div><div id="flowGrid" class="flow-grid"></div><p class="note">Source: Groww public cash-market table, which republishes exchange institutional activity. Latest day plus rolling 5-day and 20-day net flows are informational only.</p></section>
 
 <section class="panel">
   <div class="section-head"><div><div class="eyebrow">EXTERNAL CONSENSUS</div><h2>Five-house market-cap views</h2></div><span class="badge muted-badge">Rule-based extraction; informational</span></div>
