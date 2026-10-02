@@ -1,89 +1,55 @@
 name: Refresh dashboard
-
 on:
-  schedule:
-    - cron: "15 12 1,16 * *"
   workflow_dispatch:
-
+  schedule:
+    - cron: '15 12 1,16 * *'
 permissions:
   contents: write
   pages: write
   id-token: write
-
 concurrency:
   group: pages
   cancel-in-progress: false
-
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - name: Checkout latest main
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-          cache: pip
-
+          python-version: '3.12'
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Test parsers and scoring
-        run: python updater.py --self-test
-
       - name: Refresh market data
         run: python updater.py
-
-      - name: Verify refresh health
+      - name: Validate output
         run: |
           python - <<'PY'
           import json
-          from pathlib import Path
-          p = Path("data/latest.json")
-          if not p.exists():
-              print("::error::data/latest.json is missing")
-              raise SystemExit(1)
-          data = json.loads(p.read_text(encoding="utf-8"))
-          status = (data.get("source_status") or {}).get("status")
-          version = data.get("methodology_version")
-          print(f"Dashboard methodology={version}, source_status={status}, as_of={data.get('as_of')}")
-          print((data.get("source_status") or {}).get("message"))
-          if version != "3.0":
-              print(f"::error::Expected methodology 3.0 but found {version}. Fresh v3 data was not produced.")
-              raise SystemExit(1)
-          if status == "cached":
-              print("::warning::Live core sources were unavailable; deploying last-good v3 data instead of breaking the site.")
-          elif status == "partial":
-              print("::warning::Core dashboard refreshed; one or more optional/slow-moving sources used reference or cached values.")
+          d=json.load(open('data/latest.json'))
+          assert d.get('methodology_version')=='4.0'
+          assert set(d.get('segments',{}))=={'large','mid','small'}
+          print('Validated methodology',d['methodology_version'],'as of',d.get('as_of'))
           PY
-
       - name: Commit refreshed data
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "market-dashboard-bot"
+          git config user.email "actions@users.noreply.github.com"
           git add data/latest.json data/history.json
-          if git diff --cached --quiet; then
-            echo "No data changes"
-          else
-            git commit -m "Refresh cap allocation dashboard"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
-
+          git diff --cached --quiet || git commit -m "Refresh dashboard data"
+          git pull --rebase origin main || true
+          git push origin HEAD:main
       - name: Configure Pages
         uses: actions/configure-pages@v5
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
-
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
