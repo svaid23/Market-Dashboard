@@ -708,19 +708,20 @@ def main():
     for key, cfg in SEGMENTS.items():
         try:
             wealth[key] = parse_wealth(cfg['wealth_url'])
-            source_health[f'valuation_{key}'] = {'status': 'live', 'url': cfg['wealth_url']}
+            source_health[f'core_valuation_{key}'] = {'status': 'live', 'role': 'core', 'url': cfg['wealth_url']}
         except Exception as e:
             wealth[key] = (old.get('segments', {}).get(key, {}).get('_wealth') or {})
-            source_health[f'valuation_{key}'] = {'status': 'cached', 'url': cfg['wealth_url'], 'error': str(e)[:180]}
+            source_health[f'core_valuation_{key}'] = {'status': 'cached', 'role': 'core', 'url': cfg['wealth_url'], 'error': str(e)[:180]}
         try:
             indexpe[key] = parse_indexpe(cfg['indexpe_url'], cfg['index'])
-            source_health[f'pe_percentile_daily_{key}'] = {
+            source_health[f'pe_daily_crosscheck_{key}'] = {
                 'status': 'live' if indexpe[key].get('pe_5y_percentile_daily') is not None else 'partial',
+                'role': 'validation',
                 'url': cfg['indexpe_url']
             }
         except Exception as e:
             indexpe[key] = {}
-            source_health[f'pe_percentile_daily_{key}'] = {'status': 'unavailable', 'url': cfg['indexpe_url'], 'error': str(e)[:180]}
+            source_health[f'pe_daily_crosscheck_{key}'] = {'status': 'unavailable', 'role': 'validation', 'url': cfg['indexpe_url'], 'error': str(e)[:180]}
 
     large_series = wealth.get('large', {}).get('pe_monthly_5y', [])
     for key, cfg in SEGMENTS.items():
@@ -736,18 +737,18 @@ def main():
 
         try:
             trend = parse_dhan_index(cfg['dhan_index_url'])
-            source_health[f'trend_{key}'] = {'status': 'live', 'url': cfg['dhan_index_url']}
+            source_health[f'trend_{key}'] = {'status': 'live', 'role': 'validation', 'url': cfg['dhan_index_url']}
         except Exception as e:
             trend = {}
-            source_health[f'trend_{key}'] = {'status': 'unavailable', 'url': cfg['dhan_index_url'], 'error': str(e)[:180]}
+            source_health[f'trend_{key}'] = {'status': 'unavailable', 'role': 'validation', 'url': cfg['dhan_index_url'], 'error': str(e)[:180]}
 
         earn = earnings_trend(cfg, w, trend, ip)
         roe = (w.get('pb') / w.get('pe') * 100) if w.get('pb') and w.get('pe') else None
         earnings_yield = (100 / w.get('pe')) if w.get('pe') else None
-        pe_pct_daily = ip.get('pe_5y_percentile_daily')
-        pe_pct = pe_pct_daily if pe_pct_daily is not None else w.get('pe_5y_percentile_monthly')
-        pe_basis = ('5Y daily data from IndexPE' if pe_pct_daily is not None
-                    else '5Y monthly medians from WealthTicker/NSE-derived tables; current observation excluded')
+        # Core valuation must use one consistent methodology across all three caps.
+        # IndexPE daily P/E is validation-only and never drives the valuation conclusion.
+        pe_pct = w.get('pe_5y_percentile_monthly')
+        pe_basis = '5Y monthly medians from WealthTicker/NSE-derived tables; current observation excluded'
         segment_data[key] = {
             'label': cfg['label'], 'index': cfg['index'],
             'pe': w.get('pe'), 'pb': w.get('pb'), 'dividend_yield': w.get('dividend_yield'),
@@ -768,43 +769,51 @@ def main():
         tvb = fetch_tradingview_breadth()
     except Exception as e:
         tvb = {}
-        source_health['breadth_market'] = {'status': 'unavailable', 'url': TRADINGVIEW_BREADTH_URL, 'error': str(e)[:180]}
+        source_health['breadth_market'] = {'status': 'unavailable', 'role': 'context', 'url': TRADINGVIEW_BREADTH_URL, 'error': str(e)[:180]}
     else:
         live_count = sum(1 for x in tvb.values() if x.get('status') == 'live')
-        source_health['breadth_market'] = {'status': 'live' if live_count >= 3 else 'partial', 'url': TRADINGVIEW_BREADTH_URL}
+        source_health['breadth_market'] = {'status': 'live' if live_count >= 3 else 'partial', 'role': 'context', 'url': TRADINGVIEW_BREADTH_URL}
     for key in SEGMENTS:
         segment_data[key]['breadth'] = tvb.get(key, {'status': 'unavailable'})
 
-    gsec = fetch_rbi_gsec(); source_health['gsec'] = {'status': gsec['status'], 'url': gsec['source']}
+    gsec = fetch_rbi_gsec(); source_health['gsec'] = {'status': gsec['status'], 'role': 'validation', 'url': gsec['source']}
     for key, s in segment_data.items():
         s['equity_bond_spread_pp'] = (s['earnings_yield_pct'] - gsec['yield_pct']) if s.get('earnings_yield_pct') is not None and gsec.get('yield_pct') is not None else None
-        s['valuation_condition'] = valuation_label(s.get('pe_5y_percentile'), s.get('pb_5y_percentile'), s.get('relative_premium_5y_percentile') if key != 'large' else None)
+        core_source_live = source_health.get(f'core_valuation_{key}', {}).get('status') == 'live'
+        core_fields_ok = all(s.get(x) is not None for x in ('pe', 'pb', 'pe_5y_percentile', 'pb_5y_percentile'))
+        wealth_block = s.get('_wealth') or {}
+        history_ok = len(wealth_block.get('pe_monthly_5y') or []) >= 24 and len(wealth_block.get('pb_monthly_5y') or []) >= 24
+        s['core_valuation_status'] = 'live' if (core_source_live and core_fields_ok and history_ok) else 'unavailable'
+        if s['core_valuation_status'] == 'live':
+            s['valuation_condition'] = valuation_label(s.get('pe_5y_percentile'), s.get('pb_5y_percentile'), s.get('relative_premium_5y_percentile') if key != 'large' else None)
+        else:
+            s['valuation_condition'] = 'Core valuation data unavailable'
 
     refs = {}
     for key, cfg in REFERENCE.items():
         try:
             refs[key] = parse_dhan_index(cfg['dhan'])
-            source_health[f'reference_{key}'] = {'status': 'live', 'url': cfg['dhan']}
+            source_health[f'reference_{key}'] = {'status': 'live', 'role': 'context', 'url': cfg['dhan']}
         except Exception as e:
             refs[key] = {}
-            source_health[f'reference_{key}'] = {'status': 'unavailable', 'url': cfg['dhan'], 'error': str(e)[:180]}
+            source_health[f'reference_{key}'] = {'status': 'unavailable', 'role': 'context', 'url': cfg['dhan'], 'error': str(e)[:180]}
         tb = tvb.get(key, {}) if 'tvb' in locals() else {}
         if tb.get('above_50dma_pct') is not None:
             refs[key]['breadth_50dma_pct'] = tb.get('above_50dma_pct')
             refs[key]['breadth_200dma_pct'] = tb.get('above_200dma_pct')
 
-    fii = fetch_fii_dii(); source_health['fii_dii'] = {'status': fii.get('status'), 'url': fii.get('source')}
+    fii = fetch_fii_dii(); source_health['fii_dii'] = {'status': fii.get('status'), 'role': 'context', 'url': fii.get('source')}
     consensus_sources = fetch_consensus_sources()
     consensus_summary = summarize_consensus(consensus_sources)
     current_docs = sum(1 for s in consensus_sources if s.get('status') == 'live' and s.get('age_bucket') == 'current')
-    source_health['consensus'] = {'status': 'live' if current_docs >= 5 else ('partial' if current_docs else 'unavailable'), 'current_documents': current_docs, 'total_sources': len(consensus_sources)}
+    source_health['consensus'] = {'status': 'live' if current_docs >= 5 else ('partial' if current_docs else 'unavailable'), 'role': 'context', 'current_documents': current_docs, 'total_sources': len(consensus_sources)}
 
     now = datetime.now(timezone.utc).isoformat()
     out = {
-        'methodology_version': '4.2',
+        'methodology_version': '4.3',
         'generated_at': now,
         'as_of': datetime.now(timezone.utc).date().isoformat(),
-        'model_note': 'Valuation condition is driven by historical P/E and P/B positioning plus relative P/E premium for Mid/Small. Equity-bond spread, earnings trend and ROE proxy validate the read. Technicals, breadth, flows and external consensus are informational only.',
+        'model_note': 'Core valuation uses the same 5Y monthly P/E and P/B percentile methodology for Large, Mid and Small, plus relative P/E premium for Mid/Small. IndexPE daily P/E is validation-only. If live core P/E/P/B history is unavailable, no current valuation condition is issued. Equity-bond spread, earnings trend and ROE proxy validate the read; technicals, breadth, flows and external consensus are informational only.',
         'segments': segment_data,
         'gsec_10y': gsec,
         'references': refs,
@@ -821,7 +830,7 @@ def main():
         'source_health': source_health,
         'sources': {
             'valuation': 'https://wealthticker.in/nifty-pe-ratio',
-            'daily_pe_percentile': 'https://indexpe.in/',
+            'pe_daily_crosscheck': 'https://indexpe.in/',
             'gsec': 'https://www.rbi.org.in/Scripts/BS_NSDPDisplay.aspx?param=4',
             'trend': 'https://dhan.co/indices/',
             'breadth': 'https://in.tradingview.com/markets/indices/',
@@ -844,7 +853,7 @@ def main():
     snaps = [x for x in hist.get('snapshots', []) if x.get('date') != snap['date']]
     snaps.append(snap); snaps = snaps[-120:]
     HISTORY.write_text(json.dumps({'snapshots': snaps}, indent=2), encoding='utf-8')
-    print(f"Refresh complete: methodology 4.2; {len([x for x in source_health.values() if x.get('status') == 'live'])} live sources; consensus current docs {current_docs}/10")
+    print(f"Refresh complete: methodology 4.3; {len([x for x in source_health.values() if x.get('status') == 'live'])} live sources; consensus current docs {current_docs}/10")
 
 
 if __name__ == '__main__':

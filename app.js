@@ -37,8 +37,13 @@ function sourceEvidence(c){
 }
 function render(data){
   $('asOf').textContent=data.as_of||'--'; $('version').textContent=data.methodology_version||'--';
-  const health=Object.values(data.source_health||{}); const live=health.filter(x=>x.status==='live').length; const bad=health.filter(x=>['cached','unavailable'].includes(x.status)).length;
-  const status=bad===0?'live':live>0?'partial':'cached'; $('statusDot').className=`dot ${status}`; $('statusText').textContent=status==='live'?'Sources healthy':status==='partial'?'Some sources unavailable':'Using cached/seed data';
+  const health=Object.values(data.source_health||{});
+  const core=health.filter(x=>x.role==='core');
+  const coreHealthy=core.length>=3 && core.every(x=>x.status==='live');
+  const supportingIssues=health.filter(x=>x.role!=='core' && ['partial','cached','unavailable'].includes(x.status)).length;
+  const status=coreHealthy?'live':'cached';
+  $('statusDot').className=`dot ${status}`;
+  $('statusText').textContent=coreHealthy?(supportingIssues?`Core model healthy · ${supportingIssues} supporting source${supportingIssues===1?'':'s'} partial`:'Core model healthy'):'Core valuation data unavailable';
   $('cards').innerHTML=segOrder.map(k=>card(k,data.segments[k])).join('');
   const g=data.gsec_10y?.yield_pct;
   $('coreTable').innerHTML=segOrder.map(k=>{const s=data.segments[k];return `<tr><td><b>${s.label}</b><br><small>${s.index}</small></td><td>${f(s.pe,2)}x</td><td class="${tonePct(s.pe_5y_percentile)}">${f(s.pe_5y_percentile,0)}%</td><td>${f(s.pb,2)}x</td><td class="${tonePct(s.pb_5y_percentile)}">${f(s.pb_5y_percentile,0)}%</td><td>${k==='large'?'—':x(s.relative_pe_vs_large)}</td><td class="${tonePct(s.relative_premium_5y_percentile)}">${k==='large'?'—':f(s.relative_premium_5y_percentile,0)+'%'}</td><td>${pct(s.earnings_yield_pct,false)}</td><td>${g==null?'--':pct(g,false)}</td><td>${pp(s.equity_bond_spread_pp)}</td><td>${pct(s.earnings_growth_1y_pct)}</td><td>${pct(s.earnings_cagr_3y_pct)}</td><td>${pct(s.roe_proxy_pct,false)}</td><td>${pct(s.dividend_yield,false)}</td></tr>`}).join('');
@@ -57,7 +62,8 @@ function render(data){
     $('consensusCards').innerHTML=segOrder.map(k=>consensusCard(k,ec.summary?.[k]||{})).join('');
     $('consensusTable').innerHTML=(ec.sources||[]).map(c=>`<tr><td><b>${c.name}</b><br><small>${c.report_date||'undated'} · ${c.age_bucket||'--'}</small></td><td>${sourceViewCell(c.large)}</td><td>${sourceViewCell(c.mid)}</td><td>${sourceViewCell(c.small)}</td><td>${sourceEvidence(c)}</td><td>${c.reliability||'--'}</td></tr>`).join('');
   }
-  $('healthGrid').innerHTML=Object.entries(data.source_health||{}).map(([k,h])=>`<div class="health-card"><strong>${k.replaceAll('_',' ')}</strong><span class="health-pill ${h.status||''}">${h.status||'--'}</span></div>`).join('');
+  const healthLabel=k=>k.replace('core_valuation_','core valuation + 5Y history ').replace('pe_daily_crosscheck_','daily P/E cross-check ').replaceAll('_',' ');
+  $('healthGrid').innerHTML=Object.entries(data.source_health||{}).map(([k,h])=>`<div class="health-card"><strong>${healthLabel(k)}</strong><small>${h.role||'supporting'}</small><span class="health-pill ${h.status||''}">${h.status||'--'}</span></div>`).join('');
   $('disclaimer').textContent=data.disclaimer||'';
 }
 fetch('data/latest.json',{cache:'no-store'}).then(r=>r.json()).then(render).catch(e=>{$('statusText').textContent='Could not load data';console.error(e)});
