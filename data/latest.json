@@ -1,6 +1,6 @@
 {
-  "methodology_version": "4.0",
-  "generated_at": "2026-10-02T15:37:28.584174+00:00",
+  "methodology_version": "4.1",
+  "generated_at": "2026-10-02T16:02:27.970892+00:00",
   "as_of": "2026-10-02",
   "model_note": "Core valuation conclusion uses P/E percentile, P/B percentile, relative valuation premium, equity-bond spread, earnings trend and ROE proxy. Technicals, breadth, flows and external consensus are informational only.",
   "segments": {
@@ -31,11 +31,11 @@
         "neutral_stocks": 0.0
       },
       "breadth": {
-        "covered_stocks": 0,
-        "coverage_pct": 0.0,
-        "above_50dma_pct": null,
-        "above_200dma_pct": null,
-        "status": "low_coverage"
+        "above_50dma_pct": 8.0,
+        "above_200dma_pct": 16.0,
+        "status": "live",
+        "proxy_index": "Nifty 50",
+        "source": "https://in.tradingview.com/markets/indices/"
       },
       "_wealth": {
         "pe": 18.97,
@@ -46,6 +46,7 @@
         "relative_pe_median_vs_nifty50": null,
         "pe_5y_percentile": 1.6666666666666667,
         "pb_5y_percentile": 1.6666666666666667,
+        "percentile_basis": "5Y monthly medians from WealthTicker tables",
         "dy_5y_expensiveness_percentile": 76.66666666666667,
         "pe_monthly_5y": [
           25.52,
@@ -265,11 +266,11 @@
         "neutral_stocks": 0.0
       },
       "breadth": {
-        "covered_stocks": 0,
-        "coverage_pct": 0.0,
-        "above_50dma_pct": null,
-        "above_200dma_pct": null,
-        "status": "low_coverage"
+        "above_50dma_pct": 12.0,
+        "above_200dma_pct": 30.0,
+        "status": "live",
+        "proxy_index": "Nifty MidCap",
+        "source": "https://in.tradingview.com/markets/indices/"
       },
       "_wealth": {
         "pe": 28.1,
@@ -280,6 +281,7 @@
         "relative_pe_median_vs_nifty50": null,
         "pe_5y_percentile": 45.0,
         "pb_5y_percentile": 31.666666666666668,
+        "percentile_basis": "5Y monthly medians from WealthTicker tables",
         "dy_5y_expensiveness_percentile": 81.66666666666667,
         "pe_monthly_5y": [
           31.53,
@@ -499,11 +501,11 @@
         "neutral_stocks": 2.0
       },
       "breadth": {
-        "covered_stocks": 0,
-        "coverage_pct": 0.0,
-        "above_50dma_pct": null,
-        "above_200dma_pct": null,
-        "status": "low_coverage"
+        "above_50dma_pct": 23.0,
+        "above_200dma_pct": 45.0,
+        "status": "live",
+        "proxy_index": "Nifty SmallCap",
+        "source": "https://in.tradingview.com/markets/indices/"
       },
       "_wealth": {
         "pe": 34.05,
@@ -514,6 +516,7 @@
         "relative_pe_median_vs_nifty50": null,
         "pe_5y_percentile": 95.0,
         "pb_5y_percentile": 30.0,
+        "percentile_basis": "5Y monthly medians from WealthTicker tables",
         "dy_5y_expensiveness_percentile": 96.66666666666667,
         "pe_monthly_5y": [
           29.44,
@@ -721,7 +724,9 @@
       "vs_200dma_pct": -7.922229385941493,
       "positive_stocks": 13.0,
       "negative_stocks": 37.0,
-      "neutral_stocks": 0.0
+      "neutral_stocks": 0.0,
+      "breadth_50dma_pct": 8.0,
+      "breadth_200dma_pct": 16.0
     },
     "nifty500": {
       "level": 21857.75,
@@ -731,17 +736,22 @@
       "vs_200dma_pct": -4.782866470143132,
       "positive_stocks": 112.0,
       "negative_stocks": 383.0,
-      "neutral_stocks": 2.0
+      "neutral_stocks": 2.0,
+      "breadth_50dma_pct": 16.0,
+      "breadth_200dma_pct": 37.0
     }
   },
   "fii_dii": {
-    "status": "unavailable",
-    "source": "https://www.nseindia.com/reports/fii-dii"
-  },
-  "amfi_flows": {
-    "status": "unavailable",
-    "source": "https://www.amfiindia.com/research-information/amfi-monthly",
-    "flows_cr": {}
+    "latest_fii": -9484.22,
+    "latest_dii": 10041.84,
+    "fii_5d": -38660.0,
+    "dii_5d": 36293.47,
+    "fii_20d": -45856.56,
+    "dii_20d": 50873.14,
+    "rows_available": 10,
+    "status": "live",
+    "source": "https://groww.in/fii-dii-data",
+    "note": "Groww republishes NSE/BSE cash-market institutional activity. Informational only."
   },
   "external_consensus": [
     {
@@ -845,25 +855,17 @@
       "status": "live",
       "url": "https://dhan.co/indices/nifty-100-share-price/"
     },
-    "breadth_large": {
-      "status": "low_coverage",
-      "url": "https://dhan.co/stocks/market/nifty-100-gainers/"
-    },
     "trend_mid": {
       "status": "live",
       "url": "https://dhan.co/indices/nifty-midcap-150-share-price/"
-    },
-    "breadth_mid": {
-      "status": "low_coverage",
-      "url": "https://dhan.co/stocks/market/nifty-midcap-150-gainers/"
     },
     "trend_small": {
       "status": "live",
       "url": "https://dhan.co/indices/nifty-smallcap-250-share-price/"
     },
-    "breadth_small": {
-      "status": "low_coverage",
-      "url": "https://dhan.co/stocks/market/nifty-smallcap-250-gainers/"
+    "breadth_market": {
+      "status": "live",
+      "url": "https://in.tradingview.com/markets/indices/"
     },
     "gsec": {
       "status": "live",
@@ -878,12 +880,8 @@
       "url": "https://dhan.co/indices/nifty-500-share-price/"
     },
     "fii_dii": {
-      "status": "unavailable",
-      "url": "https://www.nseindia.com/reports/fii-dii"
-    },
-    "amfi": {
-      "status": "unavailable",
-      "url": "https://www.amfiindia.com/research-information/amfi-monthly"
+      "status": "live",
+      "url": "https://groww.in/fii-dii-data"
     },
     "consensus": {
       "status": "partial"
@@ -892,9 +890,9 @@
   "sources": {
     "valuation": "https://wealthticker.in/nifty-pe-ratio",
     "gsec": "https://www.rbi.org.in/Scripts/BS_NSDPDisplay.aspx?param=4",
-    "trend_breadth": "https://dhan.co/indices/",
-    "fii_dii_official": "https://www.nseindia.com/reports/fii-dii",
-    "amfi": "https://www.amfiindia.com/research-information/amfi-monthly"
+    "trend": "https://dhan.co/indices/",
+    "breadth": "https://in.tradingview.com/markets/indices/",
+    "fii_dii": "https://groww.in/fii-dii-data"
   },
   "disclaimer": "Descriptive market research only. The dashboard does not recommend, rank or predict investment outcomes. Market-context indicators do not alter the valuation condition."
 }
