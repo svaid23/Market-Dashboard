@@ -1,37 +1,32 @@
 {
   "methodology_version": "4.3",
-  "generated_at": "2026-10-02T18:20:11.154876+00:00",
-  "as_of": "2026-10-02",
+  "generated_at": "2026-10-16T12:53:37.801708+00:00",
+  "as_of": "2026-10-16",
   "model_note": "Core valuation uses the same 5Y monthly P/E and P/B percentile methodology for Large, Mid and Small, plus relative P/E premium for Mid/Small. IndexPE daily P/E is validation-only. If live core P/E/P/B history is unavailable, no current valuation condition is issued. Equity-bond spread, earnings trend and ROE proxy validate the read; technicals, breadth, flows and external consensus are informational only.",
   "segments": {
     "large": {
       "label": "Large Cap",
       "index": "Nifty 100",
-      "pe": 18.97,
-      "pb": 2.84,
-      "dividend_yield": 1.2,
-      "pe_5y_percentile": 0.0,
+      "pe": 19.42,
+      "pb": 2.92,
+      "dividend_yield": 1.49,
+      "pe_5y_percentile": 1.6666666666666667,
       "pe_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables; current observation excluded",
-      "pb_5y_percentile": 0.0,
+      "pb_5y_percentile": 3.3333333333333335,
       "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
-      "div_yield_expensiveness_percentile": 76.27118644067797,
+      "div_yield_expensiveness_percentile": 3.389830508474576,
       "relative_pe_vs_large": null,
       "relative_pe_median": null,
       "relative_premium_5y_percentile": null,
-      "earnings_yield_pct": 5.271481286241434,
-      "roe_proxy_pct": 14.971006852925672,
-      "earnings_growth_1y_pct": 8.349027322137026,
-      "earnings_cagr_3y_pct": 12.686519110068527,
+      "earnings_yield_pct": 5.1493305870236865,
+      "roe_proxy_pct": 15.036045314109165,
+      "earnings_growth_1y_pct": 5.606078620004018,
+      "earnings_cagr_3y_pct": 12.269350121675004,
       "earnings_validation": {
-        "growth_1y_pct": 8.349027322137026,
-        "cagr_3y_pct": 12.686519110068527,
+        "growth_1y_pct": 5.606078620004018,
+        "cagr_3y_pct": 12.269350121675004,
         "status": "live",
         "validation": [
-          {
-            "check": "current_index_level_crosscheck",
-            "difference_pct": 0.0,
-            "pass": true
-          },
           {
             "check": "1y_growth_sanity",
             "pass": true
@@ -49,33 +44,33 @@
         "note": "Approximate index earnings = index level / P/E; historical P/E uses monthly medians. Cross-checked against Dhan/Yahoo and IndexPE where available."
       },
       "trend": {
-        "level": 23516.5,
-        "dma50": 25002.0,
-        "dma200": 25221.6,
-        "vs_50dma_pct": -5.941524678025756,
-        "vs_200dma_pct": -6.760475148285594,
-        "positive_stocks": 25.0,
-        "negative_stocks": 75.0,
+        "level": null,
+        "dma50": 24706.76,
+        "dma200": 25093.74,
+        "vs_50dma_pct": null,
+        "vs_200dma_pct": null,
+        "positive_stocks": 53.0,
+        "negative_stocks": 47.0,
         "neutral_stocks": 0.0
       },
       "breadth": {
-        "above_50dma_pct": 8.0,
-        "above_200dma_pct": 16.0,
+        "above_50dma_pct": 32.0,
+        "above_200dma_pct": 28.0,
         "status": "live",
         "proxy_index": "Nifty 50",
         "source": "https://in.tradingview.com/markets/indices/"
       },
       "_wealth": {
-        "pe": 18.97,
-        "pb": 2.84,
-        "dividend_yield": 1.2,
-        "reported_pe_percentile": 21.0,
+        "pe": 19.42,
+        "pb": 2.92,
+        "dividend_yield": 1.49,
+        "reported_pe_percentile": 24.0,
         "relative_pe_vs_nifty50": null,
         "relative_pe_median_vs_nifty50": null,
-        "pe_5y_percentile_monthly": 0.0,
-        "pb_5y_percentile": 0.0,
+        "pe_5y_percentile_monthly": 1.6666666666666667,
+        "pb_5y_percentile": 3.3333333333333335,
         "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
-        "dy_5y_expensiveness_percentile": 76.27118644067797,
+        "dy_5y_expensiveness_percentile": 3.389830508474576,
         "pe_monthly_5y": [
           25.52,
           23.74,
@@ -94,14 +89,14 @@
           22.43,
           21.62,
           20.94,
-          21.45,
+          21.47,
           22.45,
-          22.7,
+          22.71,
           24.39,
           22.98,
           22.93,
           22.5,
-          21.42,
+          21.41,
           23.13,
           23.64,
           23.26,
@@ -116,7 +111,7 @@
           22.7,
           23.0,
           21.69,
-          20.6,
+          20.68,
           20.28,
           21.38,
           22.18,
@@ -136,7 +131,7 @@
           20.36,
           20.4,
           19.64,
-          18.97
+          19.08
         ],
         "pb_monthly_5y": [
           4.48,
@@ -163,7 +158,7 @@
           4.69,
           4.47,
           3.48,
-          3.53,
+          3.52,
           3.8,
           3.9,
           4.0,
@@ -178,7 +173,7 @@
           3.64,
           3.68,
           3.49,
-          3.41,
+          3.42,
           3.35,
           3.55,
           3.72,
@@ -198,7 +193,7 @@
           3.16,
           3.03,
           2.89,
-          2.84
+          2.87
         ],
         "dy_monthly_5y": [
           1.11,
@@ -260,52 +255,47 @@
           1.22,
           1.16,
           1.17,
-          1.2
+          1.49
         ],
-        "as_of_text": "1 Oct 2026"
+        "as_of_text": "16 Oct 2026"
       },
       "_indexpe": {
         "source": "https://indexpe.in/nifty-100",
         "status": "live",
-        "pe": 18.97,
-        "pe_5y_median": 22.2,
-        "pe_5y_percentile_daily": 0.0,
+        "pe": 19.42,
+        "pe_5y_median": 22.18,
+        "pe_5y_percentile_daily": 2.0,
         "pe_daily_observations": null,
         "earnings_cagr_5y_pct": 13.44,
-        "as_of_text": "1 Oct 2026"
+        "as_of_text": "16 Oct 2026"
       },
-      "equity_bond_spread_pp": -1.868518713758566,
+      "equity_bond_spread_pp": -2.2206694129763136,
       "core_valuation_status": "live",
       "valuation_condition": "Below-normal valuation"
     },
     "mid": {
       "label": "Mid Cap",
       "index": "Nifty Midcap 150",
-      "pe": 28.1,
-      "pb": 3.79,
-      "dividend_yield": 0.72,
-      "pe_5y_percentile": 44.067796610169495,
+      "pe": 28.18,
+      "pb": 3.81,
+      "dividend_yield": 0.97,
+      "pe_5y_percentile": 43.333333333333336,
       "pe_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables; current observation excluded",
-      "pb_5y_percentile": 30.508474576271187,
+      "pb_5y_percentile": 32.20338983050848,
       "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
-      "div_yield_expensiveness_percentile": 81.35593220338983,
-      "relative_pe_vs_large": 1.481286241433843,
+      "div_yield_expensiveness_percentile": 36.666666666666664,
+      "relative_pe_vs_large": 1.4510813594232748,
       "relative_pe_median": 1.4306930693069306,
-      "relative_premium_5y_percentile": 55.932203389830505,
-      "earnings_yield_pct": 3.558718861209964,
-      "roe_proxy_pct": 13.487544483985763,
-      "earnings_growth_1y_pct": 23.664702145407745,
-      "earnings_cagr_3y_pct": 10.359189137577584,
+      "relative_premium_5y_percentile": 51.666666666666664,
+      "earnings_yield_pct": 3.5486160397444997,
+      "roe_proxy_pct": 13.520227111426545,
+      "earnings_growth_1y_pct": 19.9951755211508,
+      "earnings_cagr_3y_pct": 10.281810512437328,
       "earnings_validation": {
-        "growth_1y_pct": 23.664702145407745,
-        "cagr_3y_pct": 10.359189137577584,
+        "growth_1y_pct": 19.9951755211508,
+        "cagr_3y_pct": 10.281810512437328,
         "status": "live",
         "validation": [
-          {
-            "check": "current_index_level_crosscheck",
-            "difference_pct": 1.8047851879643417e-06,
-            "pass": true
-          },
           {
             "check": "1y_growth_sanity",
             "pass": true
@@ -316,40 +306,40 @@
           },
           {
             "check": "indexpe_5y_reference_available",
-            "reference_5y_cagr_pct": 17.48,
+            "reference_5y_cagr_pct": 17.54,
             "pass": true
           }
         ],
         "note": "Approximate index earnings = index level / P/E; historical P/E uses monthly medians. Cross-checked against Dhan/Yahoo and IndexPE where available."
       },
       "trend": {
-        "level": 21643.85,
-        "dma50": 23029.76,
-        "dma200": 22216.74,
-        "vs_50dma_pct": -6.017909001222765,
-        "vs_200dma_pct": -2.57864115077191,
-        "positive_stocks": 38.0,
-        "negative_stocks": 111.0,
+        "level": null,
+        "dma50": 22793.74,
+        "dma200": 22200.73,
+        "vs_50dma_pct": null,
+        "vs_200dma_pct": null,
+        "positive_stocks": 70.0,
+        "negative_stocks": 79.0,
         "neutral_stocks": 0.0
       },
       "breadth": {
-        "above_50dma_pct": 12.0,
-        "above_200dma_pct": 30.0,
+        "above_50dma_pct": 21.0,
+        "above_200dma_pct": 35.0,
         "status": "live",
         "proxy_index": "Nifty MidCap",
         "source": "https://in.tradingview.com/markets/indices/"
       },
       "_wealth": {
-        "pe": 28.1,
-        "pb": 3.79,
-        "dividend_yield": 0.72,
-        "reported_pe_percentile": 27.0,
+        "pe": 28.18,
+        "pb": 3.81,
+        "dividend_yield": 0.97,
+        "reported_pe_percentile": 28.0,
         "relative_pe_vs_nifty50": null,
         "relative_pe_median_vs_nifty50": null,
-        "pe_5y_percentile_monthly": 44.067796610169495,
-        "pb_5y_percentile": 30.508474576271187,
+        "pe_5y_percentile_monthly": 43.333333333333336,
+        "pb_5y_percentile": 32.20338983050848,
         "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
-        "dy_5y_expensiveness_percentile": 81.35593220338983,
+        "dy_5y_expensiveness_percentile": 36.666666666666664,
         "pe_monthly_5y": [
           31.53,
           29.99,
@@ -368,14 +358,14 @@
           26.04,
           24.67,
           23.67,
-          24.28,
+          24.22,
           24.66,
           25.68,
           27.09,
           24.98,
           26.02,
           26.49,
-          24.33,
+          24.34,
           25.84,
           26.98,
           27.36,
@@ -390,7 +380,7 @@
           41.85,
           43.32,
           40.9,
-          35.33,
+          35.35,
           34.46,
           34.01,
           34.21,
@@ -410,7 +400,7 @@
           29.42,
           29.98,
           28.57,
-          28.1
+          28.21
         ],
         "pb_monthly_5y": [
           4.13,
@@ -430,14 +420,14 @@
           3.35,
           3.26,
           3.18,
-          3.17,
+          3.16,
           3.3,
-          3.52,
+          3.53,
           3.66,
           3.71,
           3.8,
           3.56,
-          3.66,
+          3.67,
           3.94,
           4.14,
           4.27,
@@ -452,7 +442,7 @@
           5.38,
           5.56,
           5.25,
-          4.91,
+          4.92,
           4.8,
           4.88,
           5.14,
@@ -472,7 +462,7 @@
           4.76,
           4.47,
           4.27,
-          3.79
+          3.81
         ],
         "dy_monthly_5y": [
           0.87,
@@ -499,7 +489,7 @@
           1.06,
           1.01,
           1.0,
-          1.0,
+          0.99,
           0.9,
           0.85,
           0.84,
@@ -534,52 +524,47 @@
           0.64,
           0.6,
           0.59,
-          0.72
+          0.85
         ],
-        "as_of_text": "1 Oct 2026"
+        "as_of_text": "15 Oct 2026"
       },
       "_indexpe": {
         "source": "https://indexpe.in/nifty-midcap-150",
         "status": "live",
-        "pe": 28.1,
-        "pe_5y_median": 29.81,
+        "pe": 28.12,
+        "pe_5y_median": 29.67,
         "pe_5y_percentile_daily": null,
         "pe_daily_observations": null,
-        "earnings_cagr_5y_pct": 17.48,
-        "as_of_text": "1 Oct 2026"
+        "earnings_cagr_5y_pct": 17.54,
+        "as_of_text": "16 Oct 2026"
       },
-      "equity_bond_spread_pp": -3.5812811387900356,
+      "equity_bond_spread_pp": -3.8213839602555004,
       "core_valuation_status": "live",
       "valuation_condition": "Broadly fair"
     },
     "small": {
       "label": "Small Cap",
       "index": "Nifty Smallcap 250",
-      "pe": 34.05,
-      "pb": 3.38,
-      "dividend_yield": 0.62,
-      "pe_5y_percentile": 94.91525423728814,
+      "pe": 33.92,
+      "pb": 3.39,
+      "dividend_yield": 0.76,
+      "pe_5y_percentile": 91.66666666666667,
       "pe_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables; current observation excluded",
-      "pb_5y_percentile": 28.8135593220339,
+      "pb_5y_percentile": 28.333333333333332,
       "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
-      "div_yield_expensiveness_percentile": 96.61016949152543,
-      "relative_pe_vs_large": 1.794939377965208,
+      "div_yield_expensiveness_percentile": 71.66666666666667,
+      "relative_pe_vs_large": 1.7466529351184346,
       "relative_pe_median": 1.2416475972540044,
-      "relative_premium_5y_percentile": 100.0,
-      "earnings_yield_pct": 2.9368575624082234,
-      "roe_proxy_pct": 9.926578560939795,
-      "earnings_growth_1y_pct": -5.992176800826455,
-      "earnings_cagr_3y_pct": 1.111677651303089,
+      "relative_premium_5y_percentile": 96.66666666666667,
+      "earnings_yield_pct": 2.94811320754717,
+      "roe_proxy_pct": 9.994103773584905,
+      "earnings_growth_1y_pct": -6.741042465690484,
+      "earnings_cagr_3y_pct": 0.7306067405681738,
       "earnings_validation": {
-        "growth_1y_pct": -5.992176800826455,
-        "cagr_3y_pct": 1.111677651303089,
+        "growth_1y_pct": -6.741042465690484,
+        "cagr_3y_pct": 0.7306067405681738,
         "status": "live",
         "validation": [
-          {
-            "check": "current_index_level_crosscheck",
-            "difference_pct": 4.441683887357328e-06,
-            "pass": true
-          },
           {
             "check": "1y_growth_sanity",
             "pass": true
@@ -590,40 +575,40 @@
           },
           {
             "check": "indexpe_5y_reference_available",
-            "reference_5y_cagr_pct": 9.74,
+            "reference_5y_cagr_pct": 10.0,
             "pass": true
           }
         ],
         "note": "Approximate index earnings = index level / P/E; historical P/E uses monthly medians. Cross-checked against Dhan/Yahoo and IndexPE where available."
       },
       "trend": {
-        "level": 17589.05,
-        "dma50": 18197.4,
-        "dma200": 16876.35,
-        "vs_50dma_pct": -3.3430599975820874,
-        "vs_200dma_pct": 4.223069561842463,
-        "positive_stocks": 49.0,
-        "negative_stocks": 197.0,
-        "neutral_stocks": 2.0
+        "level": null,
+        "dma50": 18171.03,
+        "dma200": 16937.1,
+        "vs_50dma_pct": null,
+        "vs_200dma_pct": null,
+        "positive_stocks": 129.0,
+        "negative_stocks": 118.0,
+        "neutral_stocks": 1.0
       },
       "breadth": {
-        "above_50dma_pct": 23.0,
-        "above_200dma_pct": 45.0,
+        "above_50dma_pct": 24.0,
+        "above_200dma_pct": 54.0,
         "status": "live",
         "proxy_index": "Nifty SmallCap",
         "source": "https://in.tradingview.com/markets/indices/"
       },
       "_wealth": {
-        "pe": 34.05,
-        "pb": 3.38,
-        "dividend_yield": 0.62,
-        "reported_pe_percentile": 56.0,
+        "pe": 33.92,
+        "pb": 3.39,
+        "dividend_yield": 0.76,
+        "reported_pe_percentile": 55.0,
         "relative_pe_vs_nifty50": null,
         "relative_pe_median_vs_nifty50": null,
-        "pe_5y_percentile_monthly": 94.91525423728814,
-        "pb_5y_percentile": 28.8135593220339,
+        "pe_5y_percentile_monthly": 91.66666666666667,
+        "pb_5y_percentile": 28.333333333333332,
         "pb_percentile_basis": "5Y monthly medians from WealthTicker/NSE-derived tables, current observation excluded",
-        "dy_5y_expensiveness_percentile": 96.61016949152543,
+        "dy_5y_expensiveness_percentile": 71.66666666666667,
         "pe_monthly_5y": [
           29.44,
           29.94,
@@ -642,9 +627,9 @@
           18.89,
           18.11,
           17.59,
-          17.63,
+          17.59,
           18.62,
-          20.56,
+          20.57,
           21.61,
           22.84,
           24.54,
@@ -664,7 +649,7 @@
           32.19,
           34.88,
           32.41,
-          27.8,
+          28.02,
           27.36,
           30.0,
           31.52,
@@ -684,7 +669,7 @@
           35.95,
           34.05,
           33.74,
-          34.05
+          34.28
         ],
         "pb_monthly_5y": [
           3.69,
@@ -726,7 +711,7 @@
           4.13,
           4.22,
           3.81,
-          3.41,
+          3.44,
           3.35,
           3.63,
           3.87,
@@ -746,7 +731,7 @@
           3.7,
           3.61,
           3.46,
-          3.38
+          3.41
         ],
         "dy_monthly_5y": [
           0.89,
@@ -766,14 +751,14 @@
           1.08,
           1.27,
           1.32,
-          1.27,
+          1.28,
           1.25,
           1.15,
           1.07,
           1.08,
           1.06,
           1.0,
-          0.98,
+          0.97,
           0.92,
           0.86,
           0.85,
@@ -788,7 +773,7 @@
           0.87,
           0.86,
           0.94,
-          0.99,
+          0.97,
           1.0,
           0.88,
           0.7,
@@ -808,65 +793,65 @@
           0.62,
           0.58,
           0.56,
-          0.62
+          0.68
         ],
-        "as_of_text": "1 Oct 2026"
+        "as_of_text": "15 Oct 2026"
       },
       "_indexpe": {
         "source": "https://indexpe.in/nifty-smallcap-250",
         "status": "live",
-        "pe": 34.05,
-        "pe_5y_median": 28.33,
+        "pe": 33.68,
+        "pe_5y_median": 28.35,
         "pe_5y_percentile_daily": null,
         "pe_daily_observations": null,
-        "earnings_cagr_5y_pct": 9.74,
-        "as_of_text": "1 Oct 2026"
+        "earnings_cagr_5y_pct": 10.0,
+        "as_of_text": "16 Oct 2026"
       },
-      "equity_bond_spread_pp": -4.203142437591776,
+      "equity_bond_spread_pp": -4.42188679245283,
       "core_valuation_status": "live",
       "valuation_condition": "Above normal"
     }
   },
   "gsec_10y": {
-    "yield_pct": 7.14,
+    "yield_pct": 7.37,
     "source": "https://www.rbi.org.in/Scripts/BS_NSDPDisplay.aspx?param=4",
     "status": "live"
   },
   "references": {
     "nifty50": {
-      "level": 22421.95,
-      "dma50": 23870.1,
-      "dma200": 24351.1,
-      "vs_50dma_pct": -6.066794860515867,
-      "vs_200dma_pct": -7.922229385941493,
-      "positive_stocks": 13.0,
-      "negative_stocks": 37.0,
+      "level": null,
+      "dma50": 23578.78,
+      "dma200": 24199.15,
+      "vs_50dma_pct": null,
+      "vs_200dma_pct": null,
+      "positive_stocks": 26.0,
+      "negative_stocks": 24.0,
       "neutral_stocks": 0.0,
-      "breadth_50dma_pct": 8.0,
-      "breadth_200dma_pct": 16.0
+      "breadth_50dma_pct": 32.0,
+      "breadth_200dma_pct": 28.0
     },
     "nifty500": {
-      "level": 21857.75,
-      "dma50": 23171.68,
-      "dma200": 22955.69,
-      "vs_50dma_pct": -5.670413194036861,
-      "vs_200dma_pct": -4.782866470143132,
-      "positive_stocks": 112.0,
-      "negative_stocks": 383.0,
-      "neutral_stocks": 2.0,
-      "breadth_50dma_pct": 16.0,
-      "breadth_200dma_pct": 37.0
+      "level": null,
+      "dma50": 22932.19,
+      "dma200": 22879.93,
+      "vs_50dma_pct": null,
+      "vs_200dma_pct": null,
+      "positive_stocks": 252.0,
+      "negative_stocks": 244.0,
+      "neutral_stocks": 1.0,
+      "breadth_50dma_pct": 22.0,
+      "breadth_200dma_pct": 41.0
     }
   },
   "fii_dii": {
-    "latest_fii": -9484.22,
-    "latest_dii": 10041.84,
-    "fii_5d": -38660.0,
-    "dii_5d": 36293.47,
+    "latest_fii": -5285.37,
+    "latest_dii": 3319.39,
+    "fii_5d": -13725.32,
+    "dii_5d": 16217.35,
     "fii_20d": null,
     "dii_20d": null,
-    "fii_mtd": -9484.22,
-    "dii_mtd": 10041.84,
+    "fii_mtd": -49934.93,
+    "dii_mtd": 51829.41,
     "rows_available": 10,
     "window_20d_complete": false,
     "mtd_complete": true,
@@ -884,16 +869,16 @@
           "Fair": 0,
           "Mixed/Fair": 0,
           "Expensive": 0,
-          "No explicit view": 3
+          "No explicit view": 4
         },
         "direction_counts": {
           "Constructive": 1,
           "Neutral/Selective": 0,
           "Mixed": 0,
           "Cautious": 1,
-          "No explicit view": 1
+          "No explicit view": 2
         },
-        "current_sources": 3,
+        "current_sources": 4,
         "stale_or_archive_sources": 3,
         "total_sources": 10,
         "valuation_directional_votes": 0,
@@ -908,16 +893,16 @@
           "Fair": 0,
           "Mixed/Fair": 0,
           "Expensive": 0,
-          "No explicit view": 3
+          "No explicit view": 4
         },
         "direction_counts": {
           "Constructive": 0,
           "Neutral/Selective": 0,
           "Mixed": 0,
           "Cautious": 1,
-          "No explicit view": 2
+          "No explicit view": 3
         },
-        "current_sources": 3,
+        "current_sources": 4,
         "stale_or_archive_sources": 3,
         "total_sources": 10,
         "valuation_directional_votes": 0,
@@ -932,16 +917,16 @@
           "Fair": 0,
           "Mixed/Fair": 0,
           "Expensive": 0,
-          "No explicit view": 3
+          "No explicit view": 4
         },
         "direction_counts": {
           "Constructive": 0,
           "Neutral/Selective": 0,
           "Mixed": 0,
           "Cautious": 1,
-          "No explicit view": 2
+          "No explicit view": 3
         },
-        "current_sources": 3,
+        "current_sources": 4,
         "stale_or_archive_sources": 3,
         "total_sources": 10,
         "valuation_directional_votes": 0,
@@ -958,7 +943,7 @@
         "report_url": "https://www.franklintempletonindia.com/static/factsheet/Innerpage/Equity-Market-Snap-Shot.html",
         "report_date": "2026-06-15",
         "age_bucket": "archive",
-        "age_days": 109,
+        "age_days": 123,
         "large": {
           "valuation": {
             "view": "Fair",
@@ -998,7 +983,7 @@
         "report_url": "https://www.axismf.com/efactsheet/Aug-2026/Innerpage/Hybrid-outlook.html",
         "report_date": "2026-08-15",
         "age_bucket": "stale",
-        "age_days": 48,
+        "age_days": 62,
         "large": {
           "valuation": {
             "view": "Mixed/Fair",
@@ -1036,9 +1021,9 @@
         "reliability": "High",
         "status": "live",
         "report_url": "https://www.motilaloswalmf.com/motilal-oswal-edge/articles/monthly-market-outlook-october-2026-by-prateek-agarwal",
-        "report_date": null,
-        "age_bucket": "undated",
-        "age_days": null,
+        "report_date": "2026-10-15",
+        "age_bucket": "current",
+        "age_days": 1,
         "large": {
           "valuation": {
             "view": "No explicit view",
@@ -1077,8 +1062,8 @@
         "status": "live",
         "report_url": "https://www.dspim.com/latest-literature?search=Netra",
         "report_date": "2026-07-16",
-        "age_bucket": "stale",
-        "age_days": 78,
+        "age_bucket": "archive",
+        "age_days": 92,
         "large": {
           "valuation": {
             "view": "No explicit view",
@@ -1155,10 +1140,10 @@
         "landing_url": "https://mutualfund.adityabirlacapital.com/abslamc-knowledge-centre/monthly-outlook",
         "reliability": "High",
         "status": "live",
-        "report_url": "https://mutualfund.adityabirlacapital.com/abslamc-knowledge-centre/articles/market-outlook-september-2026",
-        "report_date": "2026-09-18",
+        "report_url": "https://mutualfund.adityabirlacapital.com/abslamc-knowledge-centre/articles/market-outlook-october-2026",
+        "report_date": "2026-10-15",
         "age_bucket": "current",
-        "age_days": 14,
+        "age_days": 1,
         "large": {
           "valuation": {
             "view": "No explicit view",
@@ -1235,10 +1220,10 @@
         "landing_url": "https://www.plindia.com/research/",
         "reliability": "Medium-High",
         "status": "live",
-        "report_url": "https://www.plindia.com/pl-research/financial-services-sector-update-demand-resilient-through-deeper-market-penetration/",
-        "report_date": "2026-10-01",
+        "report_url": "https://www.plindia.com/pl-research/asset-management-companies-jul-sep26-earnings-preview-healthy-qaaum-growth-driven-by-equity/",
+        "report_date": "2026-10-16",
         "age_bucket": "current",
-        "age_days": 1,
+        "age_days": 0,
         "large": {
           "valuation": {
             "view": "No explicit view",
@@ -1318,7 +1303,7 @@
         "report_url": "https://mf.nipponindiaim.com/LearnAndInvest/MarketOutlook/September-2026/Equity-Market-Outlook.html",
         "report_date": "2026-09-15",
         "age_bucket": "current",
-        "age_days": 17,
+        "age_days": 31,
         "large": {
           "valuation": {
             "view": "No explicit view",
@@ -1433,7 +1418,7 @@
     "consensus": {
       "status": "partial",
       "role": "context",
-      "current_documents": 3,
+      "current_documents": 4,
       "total_sources": 10
     }
   },
